@@ -1,9 +1,22 @@
 import { isUndef, isObject } from "../util/index";
 import VNode from './VNode'
+import { activeInstance } from "../instance/lifecycle"
 
 const componentVNodeHooks = {
-    init () {
+    init (vnode, hydrating) {
         console.log('gsdinit')
+        if (
+            vnode.componentInstance &&
+            !vnode.componentInstance._isDestroyed &&
+            vnode.data.keepAlive
+        ) {
+
+        }else {
+            const child = vnode.componentInstance = createComponentInstanceForVnode(
+                vnode,
+                activeInstance
+            )
+        }
     },
     prepatch () {
         console.log('gsdprepatch')
@@ -58,4 +71,13 @@ function installComponentHooks (data) {
         }
     }
     console.log('gsdinstallComponentHooks')
+}
+
+export function createComponentInstanceForVnode (vnode, parent) {
+    const options = {
+        _isComponent: true,
+        _parentVnode: vnode,
+        parent
+    }
+    return new vnode.componentOptions.Ctor(options)
 }
