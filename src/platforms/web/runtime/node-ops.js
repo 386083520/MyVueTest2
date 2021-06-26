@@ -18,3 +18,7 @@ export function parentNode (node) {
 export function createTextNode (text) {
     return document.createTextNode(text)
 }
+
+export function nextSibling (node) {
+    return node.nextSibling
+}
