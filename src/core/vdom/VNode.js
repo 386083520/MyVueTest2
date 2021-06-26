@@ -1,4 +1,4 @@
-export default class Vnode {
+export default class VNode {
     constructor (tag, data, children, text, elm, context, componentOptions, asyncFactory) {
         this.tag = tag
         this.data = data
@@ -6,9 +6,11 @@ export default class Vnode {
         this.text = text
         this.elm = elm
         this.context = context
+        this.componentOptions = componentOptions
+        this.asyncFactory = asyncFactory
     }
 }
 
 export function createTextVNode (val) {
-    return new Vnode(undefined, undefined, undefined, String(val))
+    return new VNode(undefined, undefined, undefined, String(val))
 }

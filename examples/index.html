@@ -11,6 +11,14 @@
         new Vue({
             el: '#app',
             template: '<div>{{ gsd2 }}</div>',
+            components: {
+                'aaa': {
+                    template: '<h1>我是一个child组件</h1>'
+                },
+                'aaabbb': {
+                    template: '<h1>我是一个child组件</h1>'
+                }
+            },
             data: {
                 gsd2: 'gsdaaab'
             }

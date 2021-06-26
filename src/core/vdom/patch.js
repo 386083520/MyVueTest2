@@ -1,5 +1,5 @@
 import {isUndef, isDef, isPrimitive} from "../../shared/util"
-import Vnode from "./vnode"
+import VNode from "./VNode"
 
 export function createPatchFunction (backend) {
     const { modules, nodeOps } = backend
@@ -36,7 +36,7 @@ export function createPatchFunction (backend) {
         }
     }
     function emptyNodeAt (elm) {
-        return new Vnode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
+        return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
     }
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
         if (isUndef(oldVnode)) {

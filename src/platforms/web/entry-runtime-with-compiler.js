@@ -22,7 +22,8 @@ Vue.prototype.$mount = function (el, hydrating) {
         if (template) {
             // TODO
             let render = function(createElement) {
-                return createElement('h1', 'gsd1111')
+                // return createElement(('div',{attrs:{"id":"app"}},[createElement('h2', 'bcd'), createElement('aaa')],1))
+                return createElement('div', [createElement('h2', 'bcd'), createElement('aaa'), createElement('aaabbb')])
             }
             console.log('gsdoptions', options)
             options.render = render
