@@ -27,8 +27,11 @@ export function lifecycleMixin (Vue) {
         const vm = this
         const prevVnode = vm._vnode
         const restoreActiveInstance = setActiveInstance(vm)
+        vm._vnode = vnode
         if (!prevVnode) {
-            vm.__patch__(vm.$el, vnode, hydrating, false)
+            vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false)
+        } else {
+            vm.$el = vm.__patch__(prevVnode, vnode)
         }
         restoreActiveInstance()
     }

@@ -7,7 +7,11 @@ export function initRender (vm) {
 export function renderMixin (Vue) {
     Vue.prototype._render = function () {
         const vm = this
-        const { render } = vm.$options
+        const { render, _parentVnode } = vm.$options
+        if (_parentVnode) {
+
+        }
+        vm.$vnode = _parentVnode
         console.log('gsdrender', vm)
         let vnode
         vnode = render.call(vm._renderProxy, vm.$createElement)

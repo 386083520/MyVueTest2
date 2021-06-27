@@ -49,17 +49,23 @@ export function createPatchFunction (backend) {
                 i(vnode, false)
             }
             if (isDef(vnode.componentInstance)) {
-                console.log('gsdreturn')
-                // return true
+                initComponent(vnode, insertedVnodeQueue)
+                insert(parentElm, vnode.elm, refElm)
+                return true
             }
         }
     }
+    function initComponent (vnode, insertedVnodeQueue) {
+        if (isDef(vnode.data.pendingInsert)) {
+            // TODO
+        }
+        vnode.elm = vnode.componentInstance.$el
+    }
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
         debugger
-        console.log('gsdpatch')
         const insertedVnodeQueue = []
         if (isUndef(oldVnode)) {
-
+            createElm(vnode, insertedVnodeQueue)
         } else {
             const isRealElement = isDef(oldVnode.nodeType)
             if (isRealElement) {
@@ -67,8 +73,10 @@ export function createPatchFunction (backend) {
             }
             const oldElm = oldVnode.elm
             const parentElm = nodeOps.parentNode(oldElm)
-            console.log('gsdSibling', nodeOps.nextSibling(oldElm))
+            console.log('gsdcreateElm', vnode)
             createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm))
         }
+        console.log('gsdpatch', vnode.elm)
+        return vnode.elm
     }
 }

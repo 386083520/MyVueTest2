@@ -7,7 +7,7 @@ Vue.prototype.$mount = function (el, hydrating) {
     const options = this.$options
     if(options._componentTag) {
         let render = function(createElement) {
-            return createElement('div', 'aaab')
+            return createElement('div', 'aaab222')
         }
         options.render = render
     }
@@ -29,7 +29,7 @@ Vue.prototype.$mount = function (el, hydrating) {
             // TODO
             let render = function(createElement) {
                 // return createElement(('div',{attrs:{"id":"app"}},[createElement('h2', 'bcd'), createElement('aaa')],1))
-                return createElement('div', [createElement('h1', 'aaa'), createElement('aaabbb')])
+                return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
             }
             console.log('gsdoptions', options)
             options.render = render
