@@ -6,15 +6,12 @@
     <script src="../dist/vue.js"></script>
 </head>
 <body>
-    <div class="container" id="app">aaa</div>
+    <div class="container" id="app">aaa<aaabbb></aaabbb></div>
     <script>
         new Vue({
             el: '#app',
-            template: '<div>{{ gsd2 }}</div>',
+            template: '<h1>我是一个h1组件</h1>',
             components: {
-                'aaa': {
-                    template: '<h1>我是一个child组件</h1>'
-                },
                 'aaabbb': {
                     template: '<h1>我是一个child组件</h1>'
                 }

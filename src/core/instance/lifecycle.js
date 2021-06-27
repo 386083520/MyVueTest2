@@ -11,6 +11,17 @@ export function setActiveInstance(vm) {
     }
 }
 
+export function initLifecycle (vm) {
+    const options = vm.$options
+    let parent = options.parent
+    if (parent && !options.abstract) {
+        parent.$children.push(vm)
+    }
+    console.log('gsdparent', parent)
+    vm.$parent = parent
+    vm.$children = []
+}
+
 export function lifecycleMixin (Vue) {
     Vue.prototype._update = function (vnode, hydrating) {
         const vm = this
@@ -29,6 +40,7 @@ export function mountComponent (vm, el, hydrating) {
     updateComponent = () => {
         vm._update(vm._render(), hydrating)
     }
+    console.log('gsdmountComponent')
     console.log(vm._update(vm._render(), hydrating))
     new Watcher(vm, updateComponent, noop, {}, true)
     return vm

@@ -42,6 +42,7 @@ export function _createElement (context, tag, data, children, normalizationType)
                 tag, data, children,
                 undefined, undefined, context
             )
+            console.log('gsdvnode1', vnode)
         }
     }
      // TODO

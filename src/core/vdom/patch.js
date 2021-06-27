@@ -55,6 +55,8 @@ export function createPatchFunction (backend) {
         }
     }
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
+        debugger
+        console.log('gsdpatch')
         const insertedVnodeQueue = []
         if (isUndef(oldVnode)) {
 
