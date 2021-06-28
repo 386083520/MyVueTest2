@@ -1,16 +1,17 @@
 import Vue from './runtime/index'
 import { query } from "./util/index"
+import { compileToFunctions } from './compiler/index'
 
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
     el = el && query(el)
     const options = this.$options
-    if(options._componentTag) {
+    /*if(options._componentTag) {
         let render = function(createElement) {
             return createElement('div', 'aaab222')
         }
         options.render = render
-    }
+    }*/
     if (!options.render) {
         let template = options.template
         if (template) {
@@ -26,11 +27,12 @@ Vue.prototype.$mount = function (el, hydrating) {
         }else if(el){
         }
         if (template) {
-            // TODO
+            /*// TODO
             let render = function(createElement) {
                 // return createElement(('div',{attrs:{"id":"app"}},[createElement('h2', 'bcd'), createElement('aaa')],1))
                 return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
-            }
+            }*/
+            const { render, staticRenderFns } = compileToFunctions(template, {}, this)
             console.log('gsdoptions', options)
             options.render = render
         }
