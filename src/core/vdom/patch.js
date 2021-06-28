@@ -62,7 +62,6 @@ export function createPatchFunction (backend) {
         vnode.elm = vnode.componentInstance.$el
     }
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
-        debugger
         const insertedVnodeQueue = []
         if (isUndef(oldVnode)) {
             createElm(vnode, insertedVnodeQueue)
