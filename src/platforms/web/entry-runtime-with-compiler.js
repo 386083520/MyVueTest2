@@ -1,6 +1,7 @@
 import Vue from './runtime/index'
 import { query } from "./util/index"
 import { compileToFunctions } from './compiler/index'
+import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from "./util/compat";
 
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
@@ -32,7 +33,10 @@ Vue.prototype.$mount = function (el, hydrating) {
                 // return createElement(('div',{attrs:{"id":"app"}},[createElement('h2', 'bcd'), createElement('aaa')],1))
                 return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
             }*/
-            const { render, staticRenderFns } = compileToFunctions(template, {}, this)
+            const { render, staticRenderFns } = compileToFunctions(template, {
+                shouldDecodeNewlines,
+                shouldDecodeNewlinesForHref
+            }, this)
             console.log('gsdoptions', options)
             options.render = render
         }
