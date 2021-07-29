@@ -301,21 +301,23 @@
         return vnode
     }
 
+    function installRenderHelpers (target) {
+        target._v = createTextVNode;
+    }
+
     function initRender (vm) {
+        vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false);
         vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true);
     }
 
     function renderMixin (Vue) {
+        installRenderHelpers(Vue.prototype);
         Vue.prototype._render = function () {
             const vm = this;
             const { render, _parentVnode } = vm.$options;
             vm.$vnode = _parentVnode;
-            console.log('gsdrender', render);
+            console.log('gsdvue', this);
             let vnode;
-            /*anonymous(
-            ) {
-                with(this){return _c('div',{staticClass:"container"},[_v("aaa")])}
-            }*/
             vnode = render.call(vm._renderProxy, vm.$createElement);
             console.log('gsdvnode', vnode);
             return vnode
@@ -533,19 +535,18 @@
     }
 
     function createFunction (code, errors) {
-
+        try {
+            return new Function(code)
+        } catch (err) {
+        }
     }
 
     function createCompileToFunctionFn (compile) {
         return function compileToFunctions (template, options, vm) {
             const compiled = compile(template, options);
             console.log('gsdcompileToFunctions');
-            debugger
             const res = {};
             res.render = createFunction(compiled.render);
-            /*res.render = function(createElement) {
-                return createElement('div', [createElement('h1', 'aaa111')])
-            }*/
             res.staticRenderFns = {}; // TODO
             return res
         }
