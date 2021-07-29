@@ -310,8 +310,12 @@
             const vm = this;
             const { render, _parentVnode } = vm.$options;
             vm.$vnode = _parentVnode;
-            console.log('gsdrender', vm);
+            console.log('gsdrender', render);
             let vnode;
+            /*anonymous(
+            ) {
+                with(this){return _c('div',{staticClass:"container"},[_v("aaa")])}
+            }*/
             vnode = render.call(vm._renderProxy, vm.$createElement);
             console.log('gsdvnode', vnode);
             return vnode
@@ -536,6 +540,7 @@
         return function compileToFunctions (template, options, vm) {
             const compiled = compile(template, options);
             console.log('gsdcompileToFunctions');
+            debugger
             const res = {};
             res.render = createFunction(compiled.render);
             /*res.render = function(createElement) {
@@ -822,16 +827,29 @@
     }
 
     function generate (ast, options) {
+        const code = ast ? genElement(ast) : '_c("div")';
         return {
-            render: '', // TODO
+            render: `with(this){return ${code}}`, // TODO
             staticRenderFns: {}
+        }
+    }
+
+    function genElement (el, state) {
+        {
+            let code;
+            if (el.component) ;else {
+                code = `_c('${el.tag}'${ ''}${ ''})`;
+            }
+            return code
         }
     }
 
     const createCompiler = createCompilerCreator(function baseCompile (template, options) {
         const ast = parse(template.trim(), options);
         console.log('gsdast', ast);
-        const code = generate();
+        if (options.optimize !== false) ;
+        const code = generate(ast);
+        console.log('gsdcode', code);
         return {
             ast,
             render: code.render,
@@ -890,7 +908,7 @@
                     shouldDecodeNewlines,
                     shouldDecodeNewlinesForHref
                 }, this);
-                console.log('gsdoptions', options);
+                console.log('gsdrender2', render);
                 options.render = render;
             }
         }

@@ -12,8 +12,12 @@ export function renderMixin (Vue) {
 
         }
         vm.$vnode = _parentVnode
-        console.log('gsdrender', vm)
+        console.log('gsdrender', render)
         let vnode
+        /*anonymous(
+        ) {
+            with(this){return _c('div',{staticClass:"container"},[_v("aaa")])}
+        }*/
         vnode = render.call(vm._renderProxy, vm.$createElement)
         console.log('gsdvnode', vnode)
         return vnode

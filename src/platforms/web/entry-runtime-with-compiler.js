@@ -37,7 +37,7 @@ Vue.prototype.$mount = function (el, hydrating) {
                 shouldDecodeNewlines,
                 shouldDecodeNewlinesForHref
             }, this)
-            console.log('gsdoptions', options)
+            console.log('gsdrender2', render)
             options.render = render
         }
     }
