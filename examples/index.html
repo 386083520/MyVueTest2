@@ -8,25 +8,11 @@
 <body>
     <div class="container" id="app"></div>
     <script>
-        let div
-        function getShouldDecode (href) {
-            debugger
-            div = div || document.createElement('div')
-            div.innerHTML = href ? `<a href="\n"/>` : `<div a="\n"/>`
-            return div.innerHTML.indexOf('&#10;') > 0
-        }
-
-        console.log('gsd666', getShouldDecode(false))
         new Vue({
             el: '#app',
-            template: '<h1 class="aaa">发生发的时</h1>',
-            components: {
-                'aaabbb': {
-                    template: '<h1>我是一个child组件</h1>'
-                }
-            },
+            template: '<div class="container">aaa</div>',
             data: {
-                gsd2: 'gsdaaab'
+                'aaa': 'aaab'
             }
         })
     </script>

@@ -1,4 +1,4 @@
-import { inBrowser } from "../../../core/util";
+import { inBrowser } from "../../../core/util/index";
 
 let div
 function getShouldDecode (href) {

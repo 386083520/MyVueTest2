@@ -127,6 +127,8 @@
         return options
     }
 
+    const inBrowser = typeof window !== 'undefined';
+
     class Watcher {
         constructor (vm, expOrFn, cb, options, isRenderWatcher) {
             console.log('gsdvm', vm);
@@ -548,6 +550,13 @@
         return function createCompiler (baseOptions) {
             function compile (template, options) {
                 const finalOptions = Object.create(baseOptions);
+                if (options) {
+                    for (var key in options) {
+                        if (key !== 'modules' && key !== 'directives') {
+                            finalOptions[key] = options[key];
+                        }
+                    }
+                }
                 const compiled = baseCompile(template.trim(), finalOptions);
                 return compiled
             }
@@ -572,12 +581,32 @@
     const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
     const isPlainTextElement = makeMap('script,style,textarea', true);
 
+    const decodingMap = {
+        '&lt;': '<',
+        '&gt;': '>',
+        '&quot;': '"',
+        '&amp;': '&',
+        '&#10;': '\n',
+        '&#9;': '\t',
+        '&#39;': "'"
+    };
+    const encodedAttr = /&(?:lt|gt|quot|amp|#39);/g;
+    const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#39|#10|#9);/g;
+
+    function decodeAttr (value, shouldDecodeNewlines) {
+        const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr;
+        return value.replace(re, match => decodingMap[match])
+    }
+
     function parseHTML (html, options) {
+        const stack = [];
         let index = 0;
         let last,lastTag;
+        const expectHTML = options.expectHTML;
+        const isUnaryTag = options.isUnaryTag || no;
         while (html) {
             last = html;
-            {
+            if (!lastTag || !isPlainTextElement(lastTag)) {
                 console.log('gsdaaa', lastTag);
                 let textEnd = html.indexOf('<');
                 if (textEnd === 0) {
@@ -606,16 +635,40 @@
                     const endTagMatch = html.match(endTag);
                     if (endTagMatch) {
                         console.log('gsdendTagMatch', endTagMatch);
+                        advance(endTagMatch[0].length);
+                        parseEndTag(endTagMatch[1]);
+                        continue
                     }
                     const startTagMatch = parseStartTag();
                     console.log(index, startTagMatch);
                     if (startTagMatch) {
-                         // TODO
-                        console.log('gsdstartTagMatch', startTagMatch);
+                        handleStartTag(startTagMatch);
+                        continue
                     }
+                }
+                let text,rest,next;
+                if (textEnd >= 0) {
+                    rest = html.slice(textEnd);
+                    while (!endTag.test(rest)
+                    &&!startTagOpen.test(rest) &&
+                    !comment.test(rest) &&
+                    !conditionalComment.test(rest)) {
+                        next = rest.indexOf('<', 1);
+                        if (next < 0) break
+                    }
+                    text = html.substring(0, textEnd);
+                }
+                if (text) {
+                    advance(text.length);
+                }
+                if (options.chars && text) {
+                    options.chars(text, index - text.length, index);
                 }
             }
             if (html === last) {
+                /*if (!stack.length && options.warn) {
+                    options.warn(`Mal-formatted tag at end of template: "${html}"`, { start: index + html.length })
+                }*/
                 break
             }
         }
@@ -635,7 +688,6 @@
                     attr.end = index;
                     match.attrs.push(attr);
                 }
-                debugger
                 if (end) {
                     match.unarySlash = end[1];
                     advance(end[0].length);
@@ -648,19 +700,96 @@
             index += n;
             html = html.substring(n);
         }
+        function handleStartTag (match) {
+            const tagName = match.tagName;
+            const unarySlash = match.unarySlash;
+            const unary = isUnaryTag(tagName) || !!unarySlash;
+            const l = match.attrs.length;
+            const attrs = new Array(l);
+            for (let i = 0; i < l; i++) {
+                const args = match.attrs[i];
+                const value = args[3] || args[4] || args[5] || '';
+                const shouldDecodeNewlines = tagName === 'a' && args[1] === 'href'
+                    ? options.shouldDecodeNewlinesForHref
+                    : options.shouldDecodeNewlines;
+                attrs[i] = {
+                    name: args[1],
+                    value: decodeAttr(value, shouldDecodeNewlines)
+                };
+            }
+            if (!unary) {
+                // TODO
+                stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end });
+                lastTag = tagName;
+            }
+            if (options.start) {
+                options.start(tagName, attrs, unary, match.start, match.end);
+            }
+        }
+        function parseEndTag (tagName, start, end) {
+            let pos, lowerCasedTagName;
+            if (tagName) {
+                lowerCasedTagName = tagName.toLowerCase();
+                for (pos = stack.length - 1; pos >= 0; pos--) {
+                    if (stack[pos].lowerCasedTag === lowerCasedTagName) {
+                        break
+                    }
+                }
+            }
+            if (pos >= 0) {
+                for (let i = stack.length - 1; i >= pos; i--) {
+                    if ((i > pos || !tagName) && options.warn) {
+                        options.warn(
+                            `tag <${stack[i].tag}> has no matching end tag.`,
+                            { start: stack[i].start, end: stack[i].end }
+                        );
+                    }
+                }
+            }
+        }
     }
 
+    function baseWarn (msg, range) {
+        console.error(`[Vue compiler]: ${msg}`);
+    }
+
+    let warn;
+    function createASTElement (tag, attrs, parent) {
+        return {
+            type: 1,
+            tag,
+            attrsList: attrs,
+            attrsMap: makeAttrsMap(attrs),
+            rawAttrsMap: {},
+            parent,
+            children: []
+        }
+    }
     function parse (template, options) {
         let root;
+        let currentParent;
+        warn = options.warn || baseWarn;
         parseHTML(template, {
+            warn,
+            expectHTML: options.expectHTML,
+            isUnaryTag: options.isUnaryTag,
             shouldKeepComment: options.comments,
-            start (tag, attrs, unary, start, end) {},
+            start (tag, attrs, unary, start, end) {
+                let element = createASTElement(tag, attrs, currentParent);
+                if (!root) {
+                    root = element;
+                }
+            },
             end (tag, start, end) {},
             chars (text, start, end) {},
             comment (text, start, end) {
             }
         });
         return root
+    }
+
+    function makeAttrsMap(attrs) {
+        return attrs
     }
 
     function generate (ast, options) {
@@ -672,6 +801,7 @@
 
     const createCompiler = createCompilerCreator(function baseCompile (template, options) {
         const ast = parse(template.trim(), options);
+        console.log('gsdast', ast);
         const code = generate();
         return {
             ast,
@@ -680,11 +810,27 @@
         }
     });
 
-    const baseOptions = {
+    const isUnaryTag = makeMap(
+        'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
+        'link,meta,param,source,track,wbr'
+    );
 
+    const baseOptions = {
+        expectHTML: true,
+        isUnaryTag
     };
 
     const { compile, compileToFunctions } = createCompiler(baseOptions);
+
+    let div;
+    function getShouldDecode (href) {
+        div = div || document.createElement('div');
+        div.innerHTML = href ? `<a href="\n"/>` : `<div a="\n"/>`;
+        return div.innerHTML.indexOf('&#10;') > 0
+    }
+
+    const shouldDecodeNewlines = inBrowser ? getShouldDecode(false) : false;
+    const shouldDecodeNewlinesForHref = inBrowser ? getShouldDecode(true) : false;
 
     const mount = Vue.prototype.$mount;
     Vue.prototype.$mount = function (el, hydrating) {
@@ -711,7 +857,10 @@
                     // return createElement(('div',{attrs:{"id":"app"}},[createElement('h2', 'bcd'), createElement('aaa')],1))
                     return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
                 }*/
-                const { render, staticRenderFns } = compileToFunctions(template, {}, this);
+                const { render, staticRenderFns } = compileToFunctions(template, {
+                    shouldDecodeNewlines,
+                    shouldDecodeNewlinesForHref
+                }, this);
                 console.log('gsdoptions', options);
                 options.render = render;
             }
