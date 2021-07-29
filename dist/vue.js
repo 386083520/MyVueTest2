@@ -779,10 +779,39 @@
                 if (!root) {
                     root = element;
                 }
+                if (!unary) {
+                    currentParent = element;
+                }
             },
             end (tag, start, end) {},
-            chars (text, start, end) {},
+            chars (text, start, end) {
+                const children = currentParent.children;
+                if (text) {
+                    let child;
+                    if(text !== ' ' || !children.length) { // TODO
+                        child = {
+                            type: 3,
+                            text
+                        };
+                    }
+                    if (child) {
+                        if (options.outputSourceRange) {
+                            child.start = start;
+                            child.end = end;
+                        }
+                        children.push(child);
+                    }
+                }
+            },
             comment (text, start, end) {
+                if (currentParent) {
+                    const child = {
+                        type: 3,
+                        text,
+                        isComment: true
+                    };
+                    currentParent.children.push(child);
+                }
             }
         });
         return root
