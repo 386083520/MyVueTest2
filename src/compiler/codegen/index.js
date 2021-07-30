@@ -1,5 +1,14 @@
+import { pluckModuleFunction } from "../helpers";
+
+export class CodegenState {
+    constructor (options) {
+        this.options = options
+        this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
+    }
+}
+
 export function generate (ast, options) {
-    const state = ''
+    const state = new CodegenState(options)
     const code = ast ? genElement(ast, state) : '_c("div")'
     return {
         render: `with(this){return ${code}}`, // TODO
@@ -27,7 +36,11 @@ export function genElement (el, state) {
 }
 
 export function genData (el, state) {
-
+    let data = '{'
+    for (let i = 0; i < state.dataGenFns.length; i++) {
+        data += state.dataGenFns[i](el)
+    }
+    return data
 }
 
 export function genChildren (el, state, checkSkip, altGenElement, altGenNode) {
