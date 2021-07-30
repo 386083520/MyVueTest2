@@ -641,8 +641,9 @@
                     const endTagMatch = html.match(endTag);
                     if (endTagMatch) {
                         console.log('gsdendTagMatch', endTagMatch);
+                        const curIndex = index;
                         advance(endTagMatch[0].length);
-                        parseEndTag(endTagMatch[1]);
+                        parseEndTag(endTagMatch[1], curIndex, index);
                         continue
                     }
                     const startTagMatch = parseStartTag();
@@ -750,6 +751,9 @@
                             { start: stack[i].start, end: stack[i].end }
                         );
                     }
+                    if (options.end) {
+                        options.end(stack[i].tag, start, end);
+                    }
                 }
             }
         }
@@ -758,8 +762,15 @@
     function baseWarn (msg, range) {
         console.error(`[Vue compiler]: ${msg}`);
     }
+    function pluckModuleFunction(modules, key) {
+        return modules
+            ? modules.map(m => m[key]).filter(_ => _)
+            : []
+    }
 
     let warn;
+
+    let transforms;
     function createASTElement (tag, attrs, parent) {
         return {
             type: 1,
@@ -771,10 +782,23 @@
             children: []
         }
     }
+    function processElement (element, options) {
+        for (let i = 0; i < transforms.length; i++) {
+            element = transforms[i](element, options) || element;
+        }
+    }
     function parse (template, options) {
         let root;
         let currentParent;
+        const stack = [];
         warn = options.warn || baseWarn;
+        debugger
+        transforms = pluckModuleFunction(options.modules, 'transformNode');
+        function closeElement (element) {
+            if ( !element.processed) {
+                element = processElement(element, options);
+            }
+        }
         parseHTML(template, {
             warn,
             expectHTML: options.expectHTML,
@@ -787,9 +811,14 @@
                 }
                 if (!unary) {
                     currentParent = element;
+                    stack.push(element);
                 }
             },
-            end (tag, start, end) {},
+            end (tag, start, end) {
+                const element = stack[stack.length - 1];
+                stack.length -= 1;
+                closeElement(element);
+            },
             chars (text, start, end) {
                 const children = currentParent.children;
                 if (text) {
@@ -824,11 +853,23 @@
     }
 
     function makeAttrsMap(attrs) {
-        return attrs
+        const map = {};
+        for (let i = 0, l = attrs.length; i < l; i++) {
+            map[attrs[i].name] = attrs[i].value;
+        }
+        return map
+    }
+
+    class CodegenState {
+        constructor (options) {
+            this.options = options;
+            this.dataGenFns = pluckModuleFunction(options.modules, 'genData');
+            console.log('gsddataGenFns', this.dataGenFns);
+        }
     }
 
     function generate (ast, options) {
-        const state = '';
+        const state = new CodegenState(options);
         const code = ast ? genElement(ast, state) : '_c("div")';
         return {
             render: `with(this){return ${code}}`, // TODO
@@ -843,7 +884,7 @@
                 // {staticClass:"container"},[_v("aaa")]
                 let data;
                 { // TODO
-                    data = genData();
+                    data = genData(el, state);
                 }
                 const children = genChildren(el, state); // TODO
                 code = `_c('${el.tag}'${data ? `,${data}` : ''}${children ? `,${children}` : ''})`;
@@ -853,7 +894,14 @@
     }
 
     function genData (el, state) {
-
+        debugger
+        let data = '{';
+        for (let i = 0; i < state.dataGenFns.length; i++) {
+            data += state.dataGenFns[i](el);
+        }
+        data = data.replace(/,$/, '') + '}';
+        console.log('gsddata', data);
+        return data
     }
 
     function genChildren (el, state, checkSkip, altGenElement, altGenNode) {
@@ -883,7 +931,7 @@
         const ast = parse(template.trim(), options);
         console.log('gsdast', ast);
         if (options.optimize !== false) ;
-        const code = generate(ast);
+        const code = generate(ast, options);
         console.log('gsdcode', code);
         return {
             ast,
@@ -897,7 +945,41 @@
         'link,meta,param,source,track,wbr'
     );
 
+    function getAndRemoveAttr (el, name, removeFromMap){
+        let val;
+        if ((val = el.attrsMap[name]) != null) ;
+        return val
+    }
+
+    function genData$1 (el) {
+        console.log('gsdel', el);
+        let data = '';
+        if (el.staticClass) {
+            data += `staticClass:${el.staticClass},`;
+        }
+        return data
+    }
+
+    function transformNode (el, options) {
+        debugger
+        const staticClass = getAndRemoveAttr(el, 'class');
+        console.log('gsdstaticClass', staticClass);
+        if (staticClass) {
+            el.staticClass = JSON.stringify(staticClass);
+        }
+    }
+
+    var klass = {
+        transformNode,
+        genData: genData$1
+    };
+
+    var modules$1 = [
+        klass
+    ];
+
     const baseOptions = {
+        modules: modules$1,
         expectHTML: true,
         isUnaryTag
     };

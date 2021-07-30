@@ -1,7 +1,10 @@
 import { parseHTML } from "./html-parser";
 import {baseWarn} from "../helpers";
+import { pluckModuleFunction } from "../helpers";
 
 export let warn
+
+let transforms
 export function createASTElement (tag, attrs, parent) {
     return {
         type: 1,
@@ -13,10 +16,23 @@ export function createASTElement (tag, attrs, parent) {
         children: []
     }
 }
+export function processElement (element, options) {
+    for (let i = 0; i < transforms.length; i++) {
+        element = transforms[i](element, options) || element
+    }
+}
 export function parse (template, options) {
     let root
     let currentParent
+    let inVPre = false
+    const stack = []
     warn = options.warn || baseWarn
+    transforms = pluckModuleFunction(options.modules, 'transformNode')
+    function closeElement (element) {
+        if (!inVPre && !element.processed) {
+            element = processElement(element, options)
+        }
+    }
     parseHTML(template, {
         warn,
         expectHTML: options.expectHTML,
@@ -29,9 +45,14 @@ export function parse (template, options) {
             }
             if (!unary) {
                 currentParent = element
+                stack.push(element)
             }
         },
-        end (tag, start, end) {},
+        end (tag, start, end) {
+            const element = stack[stack.length - 1]
+            stack.length -= 1
+            closeElement(element)
+        },
         chars (text, start, end) {
             const children = currentParent.children
             if (text) {
@@ -69,5 +90,8 @@ export function parse (template, options) {
 
 function makeAttrsMap(attrs) {
     const map = {}
-    return attrs
+    for (let i = 0, l = attrs.length; i < l; i++) {
+        map[attrs[i].name] = attrs[i].value
+    }
+    return map
 }

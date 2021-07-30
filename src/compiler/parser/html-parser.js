@@ -184,6 +184,9 @@ export function parseHTML (html, options) {
                         { start: stack[i].start, end: stack[i].end }
                     )
                 }
+                if (options.end) {
+                    options.end(stack[i].tag, start, end)
+                }
             }
         }
     }

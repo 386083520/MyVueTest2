@@ -4,6 +4,7 @@ export class CodegenState {
     constructor (options) {
         this.options = options
         this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
+        console.log('gsddataGenFns', this.dataGenFns)
     }
 }
 
@@ -40,6 +41,8 @@ export function genData (el, state) {
     for (let i = 0; i < state.dataGenFns.length; i++) {
         data += state.dataGenFns[i](el)
     }
+    data = data.replace(/,$/, '') + '}'
+    console.log('gsddata', data)
     return data
 }
 
