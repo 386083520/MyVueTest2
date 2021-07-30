@@ -828,7 +828,8 @@
     }
 
     function generate (ast, options) {
-        const code = ast ? genElement(ast) : '_c("div")';
+        const state = '';
+        const code = ast ? genElement(ast, state) : '_c("div")';
         return {
             render: `with(this){return ${code}}`, // TODO
             staticRenderFns: {}
@@ -839,10 +840,43 @@
         {
             let code;
             if (el.component) ;else {
-                code = `_c('${el.tag}'${ ''}${ ''})`;
+                // {staticClass:"container"},[_v("aaa")]
+                let data;
+                { // TODO
+                    data = genData();
+                }
+                const children = genChildren(el, state); // TODO
+                code = `_c('${el.tag}'${data ? `,${data}` : ''}${children ? `,${children}` : ''})`;
             }
             return code
         }
+    }
+
+    function genData (el, state) {
+
+    }
+
+    function genChildren (el, state, checkSkip, altGenElement, altGenNode) {
+        const children = el.children;
+        if (children.length) {
+            const el = children[0];
+            const gen = altGenNode || genNode;
+            return `[${children.map(c => gen(c, state)).join(',')}]`
+        }
+    }
+
+    function genNode (node, state) {
+        if (node.type === 1) ; else if (node.type === 3 && node.isComment) ; else {
+            return genText(node)
+        }
+    }
+
+    function genText (text) {
+        return ("_v(" + (transformSpecialNewlines(JSON.stringify(text.text))) + ")")
+    }
+
+    function transformSpecialNewlines (text) {
+        return text
     }
 
     const createCompiler = createCompilerCreator(function baseCompile (template, options) {
