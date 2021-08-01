@@ -796,9 +796,45 @@
             : []
     }
 
+    function parseFilters (exp) {
+        return exp // TODO
+    }
+
+    const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g;
+    const buildRegex = function () { // TODO
+    };
+    function parseText (text, delimiters) {
+        const tagRE = delimiters ? buildRegex() : defaultTagRE;
+        if (!tagRE.test(text)) {
+            return
+        }
+        const tokens = [];
+        const rawTokens = [];
+        let lastIndex = tagRE.lastIndex = 0;
+        let match, index;
+        while ((match = tagRE.exec(text))) {
+            index = match.index;
+            console.log('gsdindex', index, lastIndex);
+            const exp = parseFilters(match[1].trim());
+            tokens.push(`_s(${exp})`);
+            rawTokens.push({ '@binding': exp });
+            lastIndex = index + match[0].length;
+        }
+        console.log('gsdtokens', tokens);
+        console.log('gsdrawTokens', rawTokens);
+        // "_s(aaa)+_s(aaab)"
+        // [{@binding: "aaa"}]
+        return {
+            expression: tokens.join('+'),
+            tokens: rawTokens
+        }
+    }
+
     let warn;
 
     let transforms;
+    let delimiters;
+
     function createASTElement (tag, attrs, parent) {
         return {
             type: 1,
@@ -816,6 +852,7 @@
         }
     }
     function parse (template, options) {
+        delimiters = options.delimiters;
         let root;
         let currentParent;
         const stack = [];
@@ -849,8 +886,9 @@
             chars (text, start, end) {
                 const children = currentParent.children;
                 if (text) {
+                    let res;
                     let child;
-                    if(text !== ' ' || !children.length) { // TODO
+                    if ( text !== ' ' && (res = parseText(text, delimiters))) ;else if(text !== ' ' || !children.length) { // TODO
                         child = {
                             type: 3,
                             text
@@ -1048,7 +1086,8 @@
                 }*/
                 const { render, staticRenderFns } = compileToFunctions(template, {
                     shouldDecodeNewlines,
-                    shouldDecodeNewlinesForHref
+                    shouldDecodeNewlinesForHref,
+                    delimiters: options.delimiters,
                 }, this);
                 console.log('gsdrender2', render);
                 options.render = render;

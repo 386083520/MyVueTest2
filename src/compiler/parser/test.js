@@ -8,4 +8,9 @@ function getShouldDecode (href) {
 console.log(getShouldDecode(true))*/
 // const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
-console.log('{{ab\r\nc}}{{abcd}}'.match(defaultTagRE))
+// console.log('{{ab\r\nc}}{{abcd}}'.match(defaultTagRE))
+
+let match
+while ((match = defaultTagRE.exec('{{abc}}{{abcd}}{{abcde}}'))) {
+    console.log(match)
+}
