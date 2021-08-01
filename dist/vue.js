@@ -21,6 +21,8 @@
         return new VNode(undefined, undefined, undefined, String(val))
     }
 
+    const _toString = Object.prototype.toString;
+
     function noop (a, b, c) {
     }
 
@@ -58,6 +60,10 @@
     }
     function isObject(obj) {
         return obj !== null && typeof obj === 'object'
+    }
+
+    function isPlainObject (obj) {
+        return _toString.call(obj) === '[object Object]'
     }
 
     function makeMap (str, expectsLowerCase) {
@@ -329,6 +335,27 @@
         vm._renderProxy = vm;
     };
 
+    function initState (vm) {
+        const opts = vm.$options;
+        if (opts.data) {
+            initData(vm);
+        }
+    }
+
+    function initData (vm) {
+        let data = vm.$options.data;
+        console.log('gsddata', data);
+        data = vm._data = (typeof data === 'function' ? getData(): data || {});
+        if (!isPlainObject(data)) {
+            data = {};
+            // TODO
+        }
+
+    }
+
+    function getData (data, vm) {
+    }
+
     function initMixin (Vue) {
         Vue.prototype._init = function (options) {
             const vm = this;
@@ -341,6 +368,7 @@
             initProxy(vm);
             initLifecycle(vm);
             initRender(vm);
+            initState(vm);
             if (vm.$options.el) {
                 console.log('gsd el', vm.$options.el);
                 vm.$mount(vm.$options.el);
@@ -792,7 +820,6 @@
         let currentParent;
         const stack = [];
         warn = options.warn || baseWarn;
-        debugger
         transforms = pluckModuleFunction(options.modules, 'transformNode');
         function closeElement (element) {
             if ( !element.processed) {
@@ -894,7 +921,6 @@
     }
 
     function genData (el, state) {
-        debugger
         let data = '{';
         for (let i = 0; i < state.dataGenFns.length; i++) {
             data += state.dataGenFns[i](el);
@@ -961,7 +987,6 @@
     }
 
     function transformNode (el, options) {
-        debugger
         const staticClass = getAndRemoveAttr(el, 'class');
         console.log('gsdstaticClass', staticClass);
         if (staticClass) {

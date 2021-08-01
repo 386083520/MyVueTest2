@@ -1,3 +1,5 @@
+const _toString = Object.prototype.toString
+
 export function noop (a, b, c) {
 }
 
@@ -35,6 +37,10 @@ export function hasOwn (obj, key) {
 }
 export function isObject(obj) {
     return obj !== null && typeof obj === 'object'
+}
+
+export function isPlainObject (obj) {
+    return _toString.call(obj) === '[object Object]'
 }
 
 export function makeMap (str, expectsLowerCase) {

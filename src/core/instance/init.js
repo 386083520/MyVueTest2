@@ -2,6 +2,7 @@ import { initRender } from "./render"
 import { initProxy } from "./proxy"
 import { mergeOptions } from "../util/options"
 import { initLifecycle } from "./lifecycle";
+import { initState } from "./state";
 
 export function initMixin (Vue) {
     Vue.prototype._init = function (options) {
@@ -15,6 +16,7 @@ export function initMixin (Vue) {
         initProxy(vm)
         initLifecycle(vm)
         initRender(vm)
+        initState(vm)
         if (vm.$options.el) {
             console.log('gsd el', vm.$options.el)
             vm.$mount(vm.$options.el)

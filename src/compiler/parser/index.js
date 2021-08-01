@@ -1,10 +1,13 @@
 import { parseHTML } from "./html-parser";
 import {baseWarn} from "../helpers";
 import { pluckModuleFunction } from "../helpers";
+import { parseText } from "./text-parser";
 
 export let warn
 
 let transforms
+let delimiters
+
 export function createASTElement (tag, attrs, parent) {
     return {
         type: 1,
@@ -22,6 +25,7 @@ export function processElement (element, options) {
     }
 }
 export function parse (template, options) {
+    delimiters = options.delimiters
     let root
     let currentParent
     let inVPre = false
@@ -56,8 +60,9 @@ export function parse (template, options) {
         chars (text, start, end) {
             const children = currentParent.children
             if (text) {
+                let res
                 let child
-                if (false) { // TODO
+                if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) { // TODO
 
                 }else if(text !== ' ' || !children.length) { // TODO
                     child = {
