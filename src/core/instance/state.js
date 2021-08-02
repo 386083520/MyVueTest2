@@ -1,6 +1,6 @@
 import { isPlainObject } from "../util/index";
 import { noop } from "../util/index";
-import { observe } from "../observer";
+import { observe } from "../observer/index";
 
 const sharedPropertyDefinition = {
     enumerable: true,

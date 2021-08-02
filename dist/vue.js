@@ -104,6 +104,17 @@
         optionMergeStrategies: Object.create(null)
     });
 
+    const unicodeRegExp = /a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/;
+
+    function def (obj, key, val, enumerable) {
+        Object.defineProperty(obj, key, {
+            value: val,
+            enumerable: !!enumerable,
+            writable: true,
+            configurable: true
+        });
+    }
+
     const strats = config.optionMergeStrategies;
     function resolveAsset (options, type, id, warnMissing) {
         if (typeof id !== 'string') {
@@ -340,6 +351,73 @@
         vm._renderProxy = vm;
     };
 
+    class Dep {
+        constructor () {
+        }
+    }
+
+    class Observer {
+        constructor (value) {
+            this.value = value;
+            this.dep = new Dep();
+            this.vmCount = 0;
+            def(value, '__ob__', this);
+            if (Array.isArray(value)) {
+                this.observeArray(value);
+            } else {
+                this.walk(value);
+            }
+        }
+        walk (obj) {
+            const keys = Object.keys(obj);
+            for (let i = 0; i < keys.length; i++) {
+                defineReactive(obj, keys[i]);
+            }
+        }
+        observeArray (items) {
+        }
+    }
+
+    function observe (value, asRootData) {
+        if (!isObject(value)) { // TODO
+            return
+        }
+        let ob;
+        if((Array.isArray(value) || isPlainObject(value))) {
+            ob = new Observer(value);
+        }
+        return ob
+    }
+
+    function defineReactive (obj, key, val) {
+        const property = Object.getOwnPropertyDescriptor(obj, key);
+        if (property && property.configurable === false) {
+            return
+        }
+        // TODO
+        if (arguments.length === 2) {
+            val = obj[key];
+        }
+        let childOb = observe(val); // TODO
+        Object.defineProperty(obj, key, {
+            enumerable: true,
+            configurable: true,
+            get: function reactiveGetter () {
+                const value = val;
+                return value
+            },
+            set: function reactiveSetter (newVal) {
+                const value = val;
+                if (newVal === value) {
+                    return
+                }
+                {
+                    val = newVal;
+                }
+            }
+        });
+    }
+
     const sharedPropertyDefinition = {
         enumerable: true,
         configurable: true,
@@ -380,6 +458,7 @@
                 proxy(vm, `_data`, key);
             }
         }
+        observe(data);
     }
 
     function getData (data, vm) {
@@ -629,8 +708,6 @@
             }
         }
     }
-
-    const unicodeRegExp = /a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/;
 
     const comment = /^<!\--/;
     const conditionalComment = /^<!\[/;

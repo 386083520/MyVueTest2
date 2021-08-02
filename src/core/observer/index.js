@@ -15,6 +15,10 @@ export class Observer {
         }
     }
     walk (obj) {
+        const keys = Object.keys(obj)
+        for (let i = 0; i < keys.length; i++) {
+            defineReactive(obj, keys[i])
+        }
     }
     observeArray (items) {
     }
@@ -30,4 +34,34 @@ export function observe (value, asRootData) {
         ob = new Observer(value)
     }
     return ob
+}
+
+export function defineReactive (obj, key, val) {
+    const property = Object.getOwnPropertyDescriptor(obj, key)
+    if (property && property.configurable === false) {
+        return
+    }
+    // TODO
+    if (arguments.length === 2) {
+        val = obj[key]
+    }
+    let childOb = observe(val) // TODO
+    Object.defineProperty(obj, key, {
+        enumerable: true,
+        configurable: true,
+        get: function reactiveGetter () {
+            const value = val
+            return value
+        },
+        set: function reactiveSetter (newVal) {
+            const value = val
+            if (newVal === value) {
+                return
+            }
+            if (false) {
+            }else {
+                val = newVal
+            }
+        }
+    })
 }
