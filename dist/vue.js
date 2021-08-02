@@ -340,6 +340,23 @@
         vm._renderProxy = vm;
     };
 
+    const sharedPropertyDefinition = {
+        enumerable: true,
+        configurable: true,
+        get: noop,
+        set: noop
+    };
+
+    function proxy (target, sourceKey, key) {
+        sharedPropertyDefinition.get = function proxyGetter () {
+            return this[sourceKey][key]
+        };
+        sharedPropertyDefinition.set = function proxySetter (val) {
+            this[sourceKey][key] = val;
+        };
+        Object.defineProperty(target, key, sharedPropertyDefinition);
+    }
+
     function initState (vm) {
         const opts = vm.$options;
         if (opts.data) {
@@ -355,7 +372,14 @@
             data = {};
             // TODO
         }
-
+        const keys = Object.keys(data);
+        let i = keys.length;
+        while (i--) {
+            const key = keys[i];
+            {
+                proxy(vm, `_data`, key);
+            }
+        }
     }
 
     function getData (data, vm) {
