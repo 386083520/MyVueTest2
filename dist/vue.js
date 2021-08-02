@@ -888,7 +888,15 @@
                 if (text) {
                     let res;
                     let child;
-                    if ( text !== ' ' && (res = parseText(text, delimiters))) ;else if(text !== ' ' || !children.length) { // TODO
+                    if ( text !== ' ' && (res = parseText(text, delimiters))) { // TODO
+                        console.log('gsdres', res);
+                        child = {
+                            type: 2,
+                            expression: res.expression,
+                            tokens: res.tokens,
+                            text
+                        };
+                    }else if(text !== ' ' || !children.length) { // TODO
                         child = {
                             type: 3,
                             text

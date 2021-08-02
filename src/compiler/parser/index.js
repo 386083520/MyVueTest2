@@ -63,7 +63,13 @@ export function parse (template, options) {
                 let res
                 let child
                 if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) { // TODO
-
+                    console.log('gsdres', res)
+                    child = {
+                        type: 2,
+                        expression: res.expression,
+                        tokens: res.tokens,
+                        text
+                    }
                 }else if(text !== ' ' || !children.length) { // TODO
                     child = {
                         type: 3,
