@@ -1,5 +1,6 @@
 import { isPlainObject } from "../util/index";
 import { noop } from "../util/index";
+import { observe } from "../observer";
 
 const sharedPropertyDefinition = {
     enumerable: true,
@@ -42,6 +43,7 @@ function initData (vm) {
             proxy(vm, `_data`, key)
         }
     }
+    observe(data, true /* asRootData */)
 }
 
 export function getData (data, vm) {
