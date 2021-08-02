@@ -43,6 +43,10 @@ export function isPlainObject (obj) {
     return _toString.call(obj) === '[object Object]'
 }
 
+export function toString (val) {
+    return val == null? '': String(val)
+}
+
 export function makeMap (str, expectsLowerCase) {
     const map = Object.create(null)
     const list = str.split(',')

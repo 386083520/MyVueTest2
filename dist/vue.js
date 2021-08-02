@@ -66,6 +66,10 @@
         return _toString.call(obj) === '[object Object]'
     }
 
+    function toString (val) {
+        return val == null? '': String(val)
+    }
+
     function makeMap (str, expectsLowerCase) {
         const map = Object.create(null);
         const list = str.split(',');
@@ -309,6 +313,7 @@
 
     function installRenderHelpers (target) {
         target._v = createTextVNode;
+        target._s = toString;
     }
 
     function initRender (vm) {
