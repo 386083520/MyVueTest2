@@ -66,7 +66,8 @@ function genNode (node, state) {
 }
 
 function genText (text) {
-    return ("_v(" + (transformSpecialNewlines(JSON.stringify(text.text))) + ")")
+    // return ("_v(" + (transformSpecialNewlines(JSON.stringify(text.text))) + ")")
+    return `_v(${text.type === 2 ? text.expression: transformSpecialNewlines(JSON.stringify(text.text))})`
 }
 
 function transformSpecialNewlines (text) {
