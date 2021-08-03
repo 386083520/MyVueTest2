@@ -1,4 +1,5 @@
-import { pushTarget } from "./dep";
+import { pushTarget, popTarget } from "./dep";
+import { queueWatcher } from "./scheduler";
 
 export default class Watcher {
     constructor (vm, expOrFn, cb, options, isRenderWatcher) {
@@ -36,6 +37,12 @@ export default class Watcher {
             if (!this.depIds.has(id)) {
                 dep.addSub(this)
             }
+        }
+    }
+    update () {
+        if (false) { // TODO
+        }else {
+            queueWatcher(this)
         }
     }
 }

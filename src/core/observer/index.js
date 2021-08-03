@@ -67,6 +67,7 @@ export function defineReactive (obj, key, val) {
             }else {
                 val = newVal
             }
+            dep.notify()
         }
     })
 }

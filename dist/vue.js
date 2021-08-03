@@ -152,8 +152,21 @@
 
     class Dep {
         constructor () {
+            this.subs = [];
+        }
+        addSub (sub) {
+            this.subs.push(sub);
         }
         depend () {
+            if (Dep.target) {
+                Dep.target.addDep(this);
+            }
+        }
+        notify () {
+            const subs = this.subs.slice();
+            for (let i = 0, l = subs.length; i < l; i++) {
+                subs[i].update();
+            }
         }
     }
 
@@ -162,10 +175,17 @@
         Dep.target = target;
     }
 
+    function queueWatcher (watcher) {
+        console.log('gsdqueueWatcher');
+    }
+
     class Watcher {
         constructor (vm, expOrFn, cb, options, isRenderWatcher) {
             console.log('gsdvm', vm);
             this.vm = vm;
+            this.depIds = new Set();
+            this.newDepIds = new Set();
+            this.newDeps = [];
             if (typeof expOrFn === 'function') {
                 this.getter = expOrFn;
             }
@@ -179,11 +199,26 @@
             const vm = this.vm;
             try {
                 // value = this.getter.call(vm, vm)
-                value = this.getter();
+                value = this.getter(); // TODO
             } catch (e) {
             } finally {
             }
             return value
+        }
+        addDep (dep) {
+            const id = dep.id;
+            if (!this.newDepIds.has(id)) {
+                this.newDepIds.add(id);
+                this.newDeps.push(dep);
+                if (!this.depIds.has(id)) {
+                    dep.addSub(this);
+                }
+            }
+        }
+        update () {
+            {
+                queueWatcher();
+            }
         }
     }
 
@@ -444,6 +479,7 @@
                 {
                     val = newVal;
                 }
+                dep.notify();
             }
         });
     }
