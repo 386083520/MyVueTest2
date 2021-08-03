@@ -44,7 +44,6 @@ export function mountComponent (vm, el, hydrating) {
         vm._update(vm._render(), hydrating)
     }
     console.log('gsdmountComponent')
-    console.log(vm._update(vm._render(), hydrating))
     new Watcher(vm, updateComponent, noop, {}, true)
     return vm
 }

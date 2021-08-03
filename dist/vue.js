@@ -150,9 +150,40 @@
 
     const inBrowser = typeof window !== 'undefined';
 
+    class Dep {
+        constructor () {
+        }
+        depend () {
+        }
+    }
+
+    Dep.target = null;
+    function pushTarget (target) {
+        Dep.target = target;
+    }
+
     class Watcher {
         constructor (vm, expOrFn, cb, options, isRenderWatcher) {
             console.log('gsdvm', vm);
+            this.vm = vm;
+            if (typeof expOrFn === 'function') {
+                this.getter = expOrFn;
+            }
+            this.value = this.lazy
+                ? undefined
+                : this.get();
+        }
+        get () {
+            pushTarget(this);
+            let value;
+            const vm = this.vm;
+            try {
+                // value = this.getter.call(vm, vm)
+                value = this.getter();
+            } catch (e) {
+            } finally {
+            }
+            return value
         }
     }
 
@@ -199,7 +230,6 @@
             vm._update(vm._render(), hydrating);
         };
         console.log('gsdmountComponent');
-        console.log(vm._update(vm._render(), hydrating));
         new Watcher(vm, updateComponent, noop, {}, true);
         return vm
     }
@@ -350,15 +380,6 @@
     initProxy = function initProxy (vm) {
         vm._renderProxy = vm;
     };
-
-    class Dep {
-        constructor () {
-        }
-        depend () {
-        }
-    }
-
-    Dep.target = null;
 
     class Observer {
         constructor (value) {
