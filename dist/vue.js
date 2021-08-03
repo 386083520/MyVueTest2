@@ -354,7 +354,11 @@
     class Dep {
         constructor () {
         }
+        depend () {
+        }
     }
+
+    Dep.target = null;
 
     class Observer {
         constructor (value) {
@@ -390,6 +394,7 @@
     }
 
     function defineReactive (obj, key, val) {
+        const dep = new Dep();
         const property = Object.getOwnPropertyDescriptor(obj, key);
         if (property && property.configurable === false) {
             return
@@ -404,6 +409,10 @@
             configurable: true,
             get: function reactiveGetter () {
                 const value = val;
+                console.log('gsdget', value);
+                if (Dep.target) {
+                    dep.depend();
+                }
                 return value
             },
             set: function reactiveSetter (newVal) {
