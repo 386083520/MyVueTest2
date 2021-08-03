@@ -1,9 +1,13 @@
 export default class Dep {
     constructor () {
+        this.subs = []
+    }
+    addSub (sub) {
+        this.subs.push(sub)
     }
     depend () {
         if (Dep.target) {
-            // Dep.target.addDep(this)
+            Dep.target.addDep(this)
         }
     }
 }
