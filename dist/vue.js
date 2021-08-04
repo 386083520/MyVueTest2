@@ -159,7 +159,6 @@
     let timerFunc;
 
     function flushCallbacks () {
-        debugger
         pending = false;
         const copies = callbacks.slice(0);
         callbacks.length = 0;
@@ -262,6 +261,7 @@
             this.depIds = new Set();
             this.newDepIds = new Set();
             this.newDeps = [];
+            this.active = true;
             if (typeof expOrFn === 'function') {
                 this.getter = expOrFn;
             }
@@ -299,6 +299,9 @@
         }
         run () {
             console.log('gsdrun');
+            if (this.active) {
+                const value = this.get();
+            }
         }
     }
 

@@ -8,6 +8,7 @@ export default class Watcher {
         this.depIds = new Set()
         this.newDepIds = new Set()
         this.newDeps = []
+        this.active = true
         if (typeof expOrFn === 'function') {
             this.getter = expOrFn
         }else {
@@ -48,5 +49,8 @@ export default class Watcher {
     }
     run () {
         console.log('gsdrun')
+        if (this.active) {
+            const value = this.get()
+        }
     }
 }
