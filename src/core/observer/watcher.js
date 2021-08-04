@@ -40,9 +40,13 @@ export default class Watcher {
         }
     }
     update () {
+        console.log('gsdupdate')
         if (false) { // TODO
         }else {
             queueWatcher(this)
         }
+    }
+    run () {
+        console.log('gsdrun')
     }
 }

@@ -150,6 +150,56 @@
 
     const inBrowser = typeof window !== 'undefined';
 
+    function isNative (Ctor) {
+        return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
+    }
+
+    const callbacks = [];
+    let pending = false;
+    let timerFunc;
+
+    function flushCallbacks () {
+        debugger
+        pending = false;
+        const copies = callbacks.slice(0);
+        callbacks.length = 0;
+        for (let i = 0; i < copies.length; i++) {
+            copies[i]();
+        }
+    }
+    if (typeof Promise !== 'undefined' && isNative(Promise)) {
+        const p = Promise.resolve();
+        timerFunc = () => {
+            console.log('gsdtimerFunc');
+            p.then(flushCallbacks);
+        };
+    } else if (typeof setImmediate !== 'undefined' && isNative(setImmediate)) {
+        timerFunc = () => {
+            setImmediate(flushCallbacks);
+        };
+    } else {
+        timerFunc = () => {
+            setTimeout(flushCallbacks, 0);
+        };
+    }
+    console.log('timerFunc', timerFunc);
+    function nextTick (cb, ctx) { // TODO
+        callbacks.push(() => {
+            try {
+                cb.call(ctx);
+            } catch (e) {
+                // TODO
+            }
+        });
+        if (!pending) {
+            pending = true;
+            // 启动异步函数
+            console.log('gsdtimerFunc2');
+            timerFunc();
+        }
+        console.log('callbacks', callbacks.length);
+    }
+
     class Dep {
         constructor () {
             this.subs = [];
@@ -175,8 +225,34 @@
         Dep.target = target;
     }
 
+    let waiting = false;
+    const queue = [];
+    let has = {};
+    let index = 0;
+    function flushSchedulerQueue () {
+        console.log('gsdflushSchedulerQueue');
+        let watcher, id;
+        for (index = 0; index < queue.length; index++) {
+            watcher = queue[index];
+            id = watcher.id;
+            has[id] = null;
+            watcher.run();
+        }
+    }
+
     function queueWatcher (watcher) {
-        console.log('gsdqueueWatcher');
+        const id = watcher.id;
+        if (has[id] == null) {
+            has[id] = true;
+            {
+                queue.push(watcher);
+            }
+            if (!waiting) {
+                waiting = true;
+                console.log('gsdnextTick');
+                nextTick(flushSchedulerQueue);
+            }
+        }
     }
 
     class Watcher {
@@ -216,9 +292,13 @@
             }
         }
         update () {
+            console.log('gsdupdate');
             {
-                queueWatcher();
+                queueWatcher(this);
             }
+        }
+        run () {
+            console.log('gsdrun');
         }
     }
 

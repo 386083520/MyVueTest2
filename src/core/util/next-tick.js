@@ -16,6 +16,7 @@ function flushCallbacks () {
 if (typeof Promise !== 'undefined' && isNative(Promise)) {
     const p = Promise.resolve()
     timerFunc = () => {
+        console.log('gsdtimerFunc')
         p.then(flushCallbacks)
     }
     isUsingMicroTask = true
@@ -28,6 +29,7 @@ if (typeof Promise !== 'undefined' && isNative(Promise)) {
         setTimeout(flushCallbacks, 0)
     }
 }
+console.log('timerFunc', timerFunc)
 export function nextTick (cb, ctx) { // TODO
     callbacks.push(() => {
         try {
@@ -35,10 +37,12 @@ export function nextTick (cb, ctx) { // TODO
         } catch (e) {
             // TODO
         }
-        if (!pending) {
-            pending = true
-            // 启动异步函数
-            timerFunc()
-        }
     })
+    if (!pending) {
+        pending = true
+        // 启动异步函数
+        console.log('gsdtimerFunc2')
+        timerFunc()
+    }
+    console.log('callbacks', callbacks.length)
 }
