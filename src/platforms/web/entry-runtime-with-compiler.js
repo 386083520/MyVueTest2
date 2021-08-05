@@ -16,13 +16,7 @@ Vue.prototype.$mount = function (el, hydrating) {
         return this
     }
     const options = this.$options
-    /*if(options._componentTag) {
-        let render = function(createElement) {
-            return createElement('div', 'aaab222')
-        }
-        options.render = render
-    }*/
-    if (!options.render) {
+    if (!options.render) { // 只有在没有传入render的时候才考虑使用template
         let template = options.template
         if (template) {
             if (typeof template === 'string') {
@@ -34,7 +28,9 @@ Vue.prototype.$mount = function (el, hydrating) {
             } else {
                 return this
             }
-        }else if(el){
+        }else if(el){ // template没有传入的时候通过el自己去获取
+            template = getOuterHTML(el)
+            console.log('gsdtemplate', template)
         }
         if (template) {
             /*// TODO
@@ -52,5 +48,11 @@ Vue.prototype.$mount = function (el, hydrating) {
         }
     }
     mount.call(this, el, hydrating)
+}
+
+function getOuterHTML (el) {
+    if (el.outerHTML) { // 通过id拿到的整个标签
+        return el.outerHTML
+    }
 }
 export default Vue

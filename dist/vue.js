@@ -1343,20 +1343,14 @@
     Vue.prototype.$mount = function (el, hydrating) {
         el = el && query(el);
         console.log('gsdel', el);
-        if (el === document.body || el === document.documentElement) {
+        if (el === document.body || el === document.documentElement) { // vue需要不能挂载在body或者html上面
             warn(
                 `Do not mount Vue to <html> or <body> - mount to normal elements instead.`
             );
             return this
         }
         const options = this.$options;
-        /*if(options._componentTag) {
-            let render = function(createElement) {
-                return createElement('div', 'aaab222')
-            }
-            options.render = render
-        }*/
-        if (!options.render) {
+        if (!options.render) { // 只有在没有传入render的时候才考虑使用template
             let template = options.template;
             if (template) {
                 if (typeof template === 'string') {
@@ -1364,6 +1358,9 @@
                 } else if (template.nodeType) ; else {
                     return this
                 }
+            }else if(el){
+                template = getOuterHTML(el);
+                console.log('gsdtemplate', template);
             }
             if (template) {
                 /*// TODO
@@ -1382,6 +1379,12 @@
         }
         mount.call(this, el, hydrating);
     };
+
+    function getOuterHTML (el) {
+        if (el.outerHTML) {
+            return el.outerHTML
+        }
+    }
 
     return Vue;
 
