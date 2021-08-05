@@ -64,6 +64,14 @@
             : val => map[val]
     }
 
+    function cached (fn) {
+        const cache = Object.create(null);
+        return (function cachedFn (str) {
+            const hit = cache[str];
+            return hit || (cache[str] = fn(str))
+        })
+    }
+
     const unicodeRegExp = /a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/;
 
     function def (obj, key, val, enumerable) {
@@ -124,6 +132,7 @@
 
     let warn = noop;
     let generateComponentTrace = noop;
+    let formatComponentName = noop;
 
     const hasConsole = typeof console !== 'undefined'; // 是否有console这个方法
 
@@ -134,7 +143,18 @@
         }
     };
 
-    generateComponentTrace = vm => {};
+    formatComponentName = (vm, includeFile) => {
+        console.log('gsdvm', vm);
+        if (vm.$root === vm || true) {
+            return '<Root>'
+        }
+    };
+
+    generateComponentTrace = vm => {
+        if (vm._isVue && vm.$parent) ; else {
+            return `\n\n(found in ${formatComponentName(vm)})`
+        }
+    };
 
     const callbacks = [];
     let pending = false;
@@ -827,6 +847,9 @@
         if (typeof el === 'string') {
             const selected = document.querySelector(el);
             if (!selected) {
+                warn(
+                    'Cannot find element: ' + el
+                );
                 return document.createElement('div')
             }
             return selected
@@ -1339,6 +1362,11 @@
     const shouldDecodeNewlines = inBrowser ? getShouldDecode(false) : false;
     const shouldDecodeNewlinesForHref = inBrowser ? getShouldDecode(true) : false;
 
+    const idToTemplate = cached(id => {
+        const el = query(id);
+        return el && el.innerHTML
+    });
+
     const mount = Vue.prototype.$mount;
     Vue.prototype.$mount = function (el, hydrating) {
         el = el && query(el);
@@ -1352,13 +1380,21 @@
         const options = this.$options;
         if (!options.render) { // 只有在没有传入render的时候才考虑使用template
             let template = options.template;
-            if (template) {
+            if (template) { // template几种不同的传入方式处理
                 if (typeof template === 'string') {
-                    if (template.charAt(0) === '#') ;
+                    if (template.charAt(0) === '#') {
+                        template = idToTemplate(template);
+                        if (!template) {
+                            warn(
+                                `Template element not found or is empty: ${options.template}`,
+                                this
+                            );
+                        }
+                    }
                 } else if (template.nodeType) ; else {
                     return this
                 }
-            }else if(el){
+            }else if(el){ // template没有传入的时候通过el自己去获取
                 template = getOuterHTML(el);
                 console.log('gsdtemplate', template);
             }
@@ -1381,7 +1417,7 @@
     };
 
     function getOuterHTML (el) {
-        if (el.outerHTML) {
+        if (el.outerHTML) { // 通过id拿到的整个标签
             return el.outerHTML
         }
     }

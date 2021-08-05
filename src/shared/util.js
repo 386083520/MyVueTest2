@@ -58,7 +58,7 @@ export function makeMap (str, expectsLowerCase) {
         : val => map[val]
 }
 
-export function cached (fn) {
+export function cached (fn) { // 一个高阶函数，避免fn被重复的执行，减少时间损耗
     const cache = Object.create(null)
     return (function cachedFn (str) {
         const hit = cache[str]
