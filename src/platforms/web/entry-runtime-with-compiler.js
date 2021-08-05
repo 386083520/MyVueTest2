@@ -1,9 +1,16 @@
 import {warn} from "../../core/util/index";
 
+
 import Vue from './runtime/index'
 import { query } from "./util/index"
+import { cached } from "../../core/util/index";
 import { compileToFunctions } from './compiler/index'
 import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from "./util/compat";
+
+const idToTemplate = cached(id => {
+    const el = query(id)
+    return el && el.innerHTML
+})
 
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
@@ -18,10 +25,16 @@ Vue.prototype.$mount = function (el, hydrating) {
     const options = this.$options
     if (!options.render) { // 只有在没有传入render的时候才考虑使用template
         let template = options.template
-        if (template) {
+        if (template) { // template几种不同的传入方式处理
             if (typeof template === 'string') {
                 if (template.charAt(0) === '#') {
-
+                    template = idToTemplate(template)
+                    if (!template) {
+                        warn(
+                            `Template element not found or is empty: ${options.template}`,
+                            this
+                        )
+                    }
                 }
             } else if (template.nodeType) {
 
