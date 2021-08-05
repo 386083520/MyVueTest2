@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+    <div id="aaa">
+        <div>bbb</div>
+    </div>
+</body>
+<script>
+
+    /*const idToTemplate = id => {
+        const el = document.querySelector(id)
+        return el && el.innerHTML
+    }
+    console.time('start')
+    for (let i = 0; i < 10000000; i++) {
+        idToTemplate('#aaa')
+    }
+    console.timeEnd('start')*/
+
+    function cached (fn) {
+        const cache = Object.create(null)
+        return (function cachedFn (str) {
+            const hit = cache[str]
+            return hit || (cache[str] = fn(str))
+        })
+    }
+
+    const idToTemplate2 = cached(id => {
+        const el = document.querySelector(id)
+        return el && el.innerHTML
+    })
+    console.log('gsd', idToTemplate2)
+    console.time('start1')
+    for (let i = 0; i < 10000000; i++) {
+        idToTemplate2('#aaa')
+    }
+    console.timeEnd('start1')
+</script>
+</html>
