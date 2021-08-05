@@ -1,16 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" id="abc">
 <head>
     <meta charset="UTF-8">
     <title>验证构建</title>
     <script src="../dist/vue.js"></script>
 </head>
 <body>
-    <div class="container" id="app"></div>
+    <div class="container" id="app">
+        <div>bbb</div>
+        <div>{{aaa}}</div>
+    </div>
     <script>
         let vm = new Vue({
-            el: '#app',
-            template: '<div class="container">{{aaa}}</div>',
+            el: '#abc',
             data: {
                 'aaa': 'aaab'
             }

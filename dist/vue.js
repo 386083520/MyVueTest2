@@ -4,23 +4,6 @@
     (global = global || self, global.Vue = factory());
 }(this, (function () { 'use strict';
 
-    class VNode {
-        constructor (tag, data, children, text, elm, context, componentOptions, asyncFactory) {
-            this.tag = tag;
-            this.data = data;
-            this.children = children;
-            this.text = text;
-            this.elm = elm;
-            this.context = context;
-            this.componentOptions = componentOptions;
-            this.asyncFactory = asyncFactory;
-        }
-    }
-
-    function createTextVNode (val) {
-        return new VNode(undefined, undefined, undefined, String(val))
-    }
-
     const _toString = Object.prototype.toString;
 
     function noop (a, b, c) {
@@ -81,29 +64,6 @@
             : val => map[val]
     }
 
-    function normalizeChildren (children) {
-        return isPrimitive(children) ? [createTextVNode(children)]: (Array.isArray(children) ? normalizeArrayChildren(children): undefined)
-    }
-
-    function normalizeArrayChildren (children) {
-        const res = [];
-        let i, c;
-        for (i = 0; i < children.length; i++) {
-            c = children[i];
-            if (Array.isArray(c)) ;else if(isPrimitive(c)) ; else {
-                res.push(c);
-            }
-        }
-        console.log('res', res);
-        return res
-    }
-
-    var config = ({
-        isReservedTag: no,
-        parsePlatformTagName: identity,
-        optionMergeStrategies: Object.create(null)
-    });
-
     const unicodeRegExp = /a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/;
 
     function def (obj, key, val, enumerable) {
@@ -114,6 +74,14 @@
             configurable: true
         });
     }
+
+    var config = ({
+        isReservedTag: no,
+        warnHandler: null,
+        parsePlatformTagName: identity,
+        optionMergeStrategies: Object.create(null),
+        silent: false // 是否给出提示性的警告
+    });
 
     const strats = config.optionMergeStrategies;
     function resolveAsset (options, type, id, warnMissing) {
@@ -153,6 +121,20 @@
     function isNative (Ctor) {
         return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
     }
+
+    let warn = noop;
+    let generateComponentTrace = noop;
+
+    const hasConsole = typeof console !== 'undefined'; // 是否有console这个方法
+
+    warn = (msg, vm) => {
+        const trace = vm ? generateComponentTrace(vm) : '';
+        if (config.warnHandler) ;else if(hasConsole && (!config.silent)){
+            console.error(`[Vue warn]: ${msg}${trace}`);
+        }
+    };
+
+    generateComponentTrace = vm => {};
 
     const callbacks = [];
     let pending = false;
@@ -197,6 +179,40 @@
             timerFunc();
         }
         console.log('callbacks', callbacks.length);
+    }
+
+    class VNode {
+        constructor (tag, data, children, text, elm, context, componentOptions, asyncFactory) {
+            this.tag = tag;
+            this.data = data;
+            this.children = children;
+            this.text = text;
+            this.elm = elm;
+            this.context = context;
+            this.componentOptions = componentOptions;
+            this.asyncFactory = asyncFactory;
+        }
+    }
+
+    function createTextVNode (val) {
+        return new VNode(undefined, undefined, undefined, String(val))
+    }
+
+    function normalizeChildren (children) {
+        return isPrimitive(children) ? [createTextVNode(children)]: (Array.isArray(children) ? normalizeArrayChildren(children): undefined)
+    }
+
+    function normalizeArrayChildren (children) {
+        const res = [];
+        let i, c;
+        for (i = 0; i < children.length; i++) {
+            c = children[i];
+            if (Array.isArray(c)) ;else if(isPrimitive(c)) ; else {
+                res.push(c);
+            }
+        }
+        console.log('res', res);
+        return res
     }
 
     class Dep {
@@ -1085,7 +1101,7 @@
         }
     }
 
-    let warn;
+    let warn$1;
 
     let transforms;
     let delimiters;
@@ -1111,7 +1127,7 @@
         let root;
         let currentParent;
         const stack = [];
-        warn = options.warn || baseWarn;
+        warn$1 = options.warn || baseWarn;
         transforms = pluckModuleFunction(options.modules, 'transformNode');
         function closeElement (element) {
             if ( !element.processed) {
@@ -1119,7 +1135,7 @@
             }
         }
         parseHTML(template, {
-            warn,
+            warn: warn$1,
             expectHTML: options.expectHTML,
             isUnaryTag: options.isUnaryTag,
             shouldKeepComment: options.comments,
@@ -1326,6 +1342,13 @@
     const mount = Vue.prototype.$mount;
     Vue.prototype.$mount = function (el, hydrating) {
         el = el && query(el);
+        console.log('gsdel', el);
+        if (el === document.body || el === document.documentElement) {
+            warn(
+                `Do not mount Vue to <html> or <body> - mount to normal elements instead.`
+            );
+            return this
+        }
         const options = this.$options;
         /*if(options._componentTag) {
             let render = function(createElement) {

@@ -1,3 +1,5 @@
+import {warn} from "../../core/util/index";
+
 import Vue from './runtime/index'
 import { query } from "./util/index"
 import { compileToFunctions } from './compiler/index'
@@ -6,6 +8,13 @@ import { shouldDecodeNewlines, shouldDecodeNewlinesForHref } from "./util/compat
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
     el = el && query(el)
+    console.log('gsdel', el)
+    if (el === document.body || el === document.documentElement) { // vue需要不能挂载在body或者html上面
+        warn(
+            `Do not mount Vue to <html> or <body> - mount to normal elements instead.`
+        )
+        return this
+    }
     const options = this.$options
     /*if(options._componentTag) {
         let render = function(createElement) {
