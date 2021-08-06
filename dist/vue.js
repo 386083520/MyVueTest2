@@ -64,7 +64,7 @@
             : val => map[val]
     }
 
-    function cached (fn) {
+    function cached (fn) { // 一个高阶函数，避免fn被重复的执行，减少时间损耗
         const cache = Object.create(null);
         return (function cachedFn (str) {
             const hit = cache[str];
@@ -136,7 +136,7 @@
 
     const hasConsole = typeof console !== 'undefined'; // 是否有console这个方法
 
-    warn = (msg, vm) => {
+    warn = (msg, vm) => { // 代码异常情况的警告处理
         const trace = vm ? generateComponentTrace(vm) : '';
         if (config.warnHandler) ;else if(hasConsole && (!config.silent)){
             console.error(`[Vue warn]: ${msg}${trace}`);
@@ -843,7 +843,7 @@
         return mountComponent(this, el, hydrating)
     };
 
-    function query (el) {
+    function query (el) { // 根据传入的值找到对应的元素
         if (typeof el === 'string') {
             const selected = document.querySelector(el);
             if (!selected) {
@@ -1391,13 +1391,15 @@
                             );
                         }
                     }
-                } else if (template.nodeType) ; else {
+                } else if (template.nodeType) {
+                    template = template.innerHTML;
+                } else {
                     return this
                 }
             }else if(el){ // template没有传入的时候通过el自己去获取
                 template = getOuterHTML(el);
-                console.log('gsdtemplate', template);
             }
+            console.log('gsdtemplate', template);
             if (template) {
                 /*// TODO
                 let render = function(createElement) {

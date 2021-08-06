@@ -37,14 +37,14 @@ Vue.prototype.$mount = function (el, hydrating) {
                     }
                 }
             } else if (template.nodeType) {
-
+                template = template.innerHTML
             } else {
                 return this
             }
         }else if(el){ // template没有传入的时候通过el自己去获取
             template = getOuterHTML(el)
-            console.log('gsdtemplate', template)
         }
+        console.log('gsdtemplate', template)
         if (template) {
             /*// TODO
             let render = function(createElement) {
