@@ -66,6 +66,10 @@ Vue.prototype.$mount = function (el, hydrating) {
 function getOuterHTML (el) {
     if (el.outerHTML) { // 通过id拿到的整个标签
         return el.outerHTML
+    }else {
+        const container = document.createElement('div')
+        container.appendChild(el.cloneNode(true))
+        return container.innerHTML
     }
 }
 export default Vue

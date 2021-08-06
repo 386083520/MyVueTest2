@@ -1419,9 +1419,10 @@
     };
 
     function getOuterHTML (el) {
-        if (el.outerHTML) { // 通过id拿到的整个标签
-            return el.outerHTML
-        }
+        debugger
+        const container = document.createElement('div');
+        container.appendChild(el.cloneNode(true));
+        return container.innerHTML
     }
 
     return Vue;
