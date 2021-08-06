@@ -72,4 +72,7 @@ function getOuterHTML (el) {
         return container.innerHTML
     }
 }
+
+Vue.compile = compileToFunctions // template变成render
+
 export default Vue

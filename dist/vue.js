@@ -1419,11 +1419,16 @@
     };
 
     function getOuterHTML (el) {
-        debugger
-        const container = document.createElement('div');
-        container.appendChild(el.cloneNode(true));
-        return container.innerHTML
+        if (el.outerHTML) { // 通过id拿到的整个标签
+            return el.outerHTML
+        }else {
+            const container = document.createElement('div');
+            container.appendChild(el.cloneNode(true));
+            return container.innerHTML
+        }
     }
+
+    Vue.compile = compileToFunctions; // template变成render
 
     return Vue;
 

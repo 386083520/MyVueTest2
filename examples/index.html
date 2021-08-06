@@ -22,6 +22,8 @@
                 'aaa': 'aaab'
             }
         })
+        let {render} = Vue.compile('<div>abc{{aaa}}</div>')
+        console.log('gsdrender111', render)
     </script>
 </body>
 </html>
