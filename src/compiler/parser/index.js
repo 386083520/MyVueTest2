@@ -78,10 +78,14 @@ export function parse (template, options) {
 
     }
     parseHTML(template, {
-        warn,
+        warn, // 警告函数
         expectHTML: options.expectHTML,
-        isUnaryTag: options.isUnaryTag,
-        shouldKeepComment: options.comments,
+        isUnaryTag: options.isUnaryTag, // 是否是一元标签
+        canBeLeftOpenTag: options.canBeLeftOpenTag,
+        shouldDecodeNewlines: options.shouldDecodeNewlines,
+        shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
+        shouldKeepComment: options.comments, // 是否保存注释
+        outputSourceRange: options.outputSourceRange,
         start (tag, attrs, unary, start, end) {
             let element = createASTElement(tag, attrs, currentParent)
             if (!root) {
