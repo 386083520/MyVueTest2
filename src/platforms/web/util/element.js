@@ -24,3 +24,14 @@ export const isSVG = makeMap(
 export const isReservedTag = (tag) => {
     return isHTMLTag(tag) || isSVG(tag)
 }
+
+export function getTagNamespace (tag) { // 获取标签名的命名空间
+    if (isSVG(tag)) {
+        return 'svg'
+    }
+    if (tag === 'math') {
+        return 'math'
+    }
+}
+
+export const isPreTag = (tag) => tag === 'pre'

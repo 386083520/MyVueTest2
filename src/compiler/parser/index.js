@@ -2,11 +2,19 @@ import { parseHTML } from "./html-parser";
 import {baseWarn} from "../helpers";
 import { pluckModuleFunction } from "../helpers";
 import { parseText } from "./text-parser";
+import {no} from "../../shared/util";
 
 export let warn
 
 let transforms
+let preTransforms
+let postTransforms
 let delimiters
+
+let platformIsPreTag
+let platformMustUseProp
+let platformGetTagNamespace
+let maybeComponent
 
 export function createASTElement (tag, attrs, parent) {
     return {
@@ -25,17 +33,49 @@ export function processElement (element, options) {
     }
 }
 export function parse (template, options) {
+    warn = options.warn || baseWarn
+
+    platformIsPreTag = options.isPreTag || no // 判断是否是pre标签
+
+    platformMustUseProp = options.mustUseProp || no
+    platformGetTagNamespace = options.getTagNamespace || no
+    const isReservedTag = options.isReservedTag || no
+    maybeComponent = (el) => !!el.component || !isReservedTag(el.tag)
+    transforms = pluckModuleFunction(options.modules, 'transformNode')
+    preTransforms = pluckModuleFunction(options.modules, 'preTransformNode')
+    postTransforms = pluckModuleFunction(options.modules, 'postTransformNode')
+
     delimiters = options.delimiters
+
+    const stack = []
+    const preserveWhitespace = options.preserveWhitespace !== false // 去掉空格
+    const whitespaceOption = options.whitespace
     let root
     let currentParent
     let inVPre = false
-    const stack = []
-    warn = options.warn || baseWarn
-    transforms = pluckModuleFunction(options.modules, 'transformNode')
-    function closeElement (element) {
+    let inPre = false
+    let warned = false
+
+    function warnOnce (msg, range) { // 多次只警告一次
+        if (!warned) {
+            warned = true
+            warn(msg, range)
+        }
+    }
+
+
+    function closeElement (element) {// 关闭element
         if (!inVPre && !element.processed) {
             element = processElement(element, options)
         }
+    }
+
+    function trimEndingWhitespace (el) { // 若当前元素不是pre元素，则删除元素尾部的空白文本节点
+
+    }
+
+    function checkRootConstraints (el) { // 校验检查，不要用slot、template做根节点，也不要用 v-for 属性，因为这些都可能产生多个根节点
+
     }
     parseHTML(template, {
         warn,

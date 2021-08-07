@@ -31,9 +31,10 @@
         return v === true
     }
 
-    const no = (a, b, c) => {
+    /*export const no = (a, b, c) => {
         return (a === 'div' || a === 'h1')
-    }; // TODO
+    }*/ // TODO
+    const no = (a, b, c) => false;
 
     const identity = (_) => _;
 
@@ -860,6 +861,31 @@
         return mountComponent(this, el, hydrating)
     };
 
+    const isHTMLTag = makeMap(
+        'html,body,base,head,link,meta,style,title,' +
+        'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
+        'div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,' +
+        'a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,rtc,ruby,' +
+        's,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,' +
+        'embed,object,param,source,canvas,script,noscript,del,ins,' +
+        'caption,col,colgroup,table,thead,tbody,td,th,tr,' +
+        'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' +
+        'output,progress,select,textarea,' +
+        'details,dialog,menu,menuitem,summary,' +
+        'content,element,shadow,template,blockquote,iframe,tfoot'
+    );
+
+    const isSVG = makeMap(
+        'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' +
+        'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
+        'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view',
+        true
+    );
+
+    const isReservedTag = (tag) => {
+        return isHTMLTag(tag) || isSVG(tag)
+    };
+
     function query (el) { // 根据传入的值找到对应的元素
         if (typeof el === 'string') {
             const selected = document.querySelector(el);
@@ -883,6 +909,8 @@
         try {
             return new Function(code)
         } catch (err) {
+            errors.push({ err, code });
+            return noop
         }
     }
 
@@ -939,9 +967,19 @@
             }
             console.log('gsdcompileToFunctions');
             const res = {};
-            res.render = createFunction(compiled.render);
+            const fnGenErrors = [];
+            res.render = createFunction(compiled.render, fnGenErrors);
             res.staticRenderFns = {}; // TODO
-            return res
+            { // TODO
+                if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
+                    warn$1(
+                        `Failed to generate render function:\n\n` +
+                        fnGenErrors.map(({ err, code }) => `${err.toString()} in\n\n${code}\n`).join('\n'),
+                        vm
+                    );
+                }
+            }
+            return (cache[key] = res)
         }
     }
 
@@ -1338,10 +1376,20 @@
         return map
     }
 
+    var baseDirectives = {
+
+    };
+
     class CodegenState {
         constructor (options) {
-            this.options = options;
+            this.options = options; // finalOptionss，经过合并后的
+            this.warn = options.warn || baseWarn;
+            this.transforms = pluckModuleFunction(options.modules, 'transformCode');
             this.dataGenFns = pluckModuleFunction(options.modules, 'genData');
+            this.directives = extend(extend({}, baseDirectives), options.directives);
+            const isReservedTag = options.isReservedTag || no; // 是否是保留标签
+            this.maybeComponent = (el) => !!el.component || !isReservedTag(el.tag);  // 是否是组件
+            this.staticRenderFns = [];
             console.log('gsddataGenFns', this.dataGenFns);
         }
     }
@@ -1351,7 +1399,7 @@
         const code = ast ? genElement(ast, state) : '_c("div")';
         return {
             render: `with(this){return ${code}}`, // TODO
-            staticRenderFns: {}
+            staticRenderFns: state.staticRenderFns
         }
     }
 
@@ -1467,6 +1515,7 @@
         modules: modules$1,
         directives,
         expectHTML: true,
+        isReservedTag, // 是否是保留标签
         isUnaryTag
     };
 
