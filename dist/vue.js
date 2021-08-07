@@ -72,6 +72,13 @@
         })
     }
 
+    function extend (to, _from) { // 合并，以from的优先级更高
+        for (const key in _from) {
+            to[key] = _from[key];
+        }
+        return to
+    }
+
     const unicodeRegExp = /a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/;
 
     function def (obj, key, val, enumerable) {
@@ -876,18 +883,60 @@
         }
     }
 
+    // 检测template里面有问题的表达式
+    function detectErrors (ast, warn) {
+    }
+
     function createCompilerCreator (baseCompile) {
         return function createCompiler (baseOptions) {
             function compile (template, options) {
+                // 合并baseOptions和options
                 const finalOptions = Object.create(baseOptions);
+                const errors = [];
+                const tips = [];
+                let warn = (msg, range, tip) => {
+                    (tip ? tips : errors).push(msg);
+                };
                 if (options) {
+                    if (options.outputSourceRange) {
+                        const leadingSpaceLength = template.match(/^\s*/)[0].length;
+                        warn = (msg, range, tip) => {
+                            const data = { msg };
+                            if (range) {
+                                if (range.start != null) {
+                                    data.start = range.start + leadingSpaceLength;
+                                }
+                                if (range.end != null) {
+                                    data.end = range.end + leadingSpaceLength;
+                                }
+                            }
+                            (tip ? tips : errors).push(data);
+                        };
+                    }
+                    // 合并modules
+                    if (options.modules) {
+                        finalOptions.modules =
+                            (baseOptions.modules || []).concat(options.modules);
+                    }
+                    // 合并directives
+                    if (options.directives) {
+                        finalOptions.directives = extend(
+                            Object.create(baseOptions.directives || null),
+                            options.directives
+                        );
+                    }
                     for (var key in options) {
                         if (key !== 'modules' && key !== 'directives') {
                             finalOptions[key] = options[key];
                         }
                     }
                 }
+                finalOptions.warn = warn;
+                // 执行baseCompile
                 const compiled = baseCompile(template.trim(), finalOptions);
+                detectErrors(compiled.ast);
+                compiled.errors = errors;
+                compiled.tips = tips;
                 return compiled
             }
             return {
@@ -1344,8 +1393,13 @@
         klass
     ];
 
+    var directives = {
+
+    };
+
     const baseOptions = {
         modules: modules$1,
+        directives,
         expectHTML: true,
         isUnaryTag
     };
@@ -1407,6 +1461,7 @@
                     return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
                 }*/
                 const { render, staticRenderFns } = compileToFunctions(template, {
+                    outputSourceRange: true,
                     shouldDecodeNewlines,
                     shouldDecodeNewlinesForHref,
                     delimiters: options.delimiters,
