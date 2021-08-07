@@ -138,30 +138,40 @@
     }
 
     let warn = noop;
+    let tip = noop;
     let generateComponentTrace = noop;
     let formatComponentName = noop;
 
     const hasConsole = typeof console !== 'undefined'; // 是否有console这个方法
 
-    warn = (msg, vm) => { // 代码异常情况的警告处理
-        const trace = vm ? generateComponentTrace(vm) : '';
-        if (config.warnHandler) ;else if(hasConsole && (!config.silent)){
-            console.error(`[Vue warn]: ${msg}${trace}`);
-        }
-    };
+    { // TODO
+        warn = (msg, vm) => { // 代码异常情况的警告处理
+            const trace = vm ? generateComponentTrace(vm) : '';
+            if (config.warnHandler) ;else if(hasConsole && (!config.silent)){
+                console.error(`[Vue warn]: ${msg}${trace}`);
+            }
+        };
+        tip = (msg, vm) => {
+            if (hasConsole && (!config.silent)) {
+                console.warn(`[Vue tip]: ${msg}` + (
+                    vm ? generateComponentTrace(vm) : ''
+                ));
+            }
+        };
 
-    formatComponentName = (vm, includeFile) => {
-        console.log('gsdvm', vm);
-        if (vm.$root === vm || true) {
-            return '<Root>'
-        }
-    };
+        formatComponentName = (vm, includeFile) => {
+            console.log('gsdvm', vm);
+            if (vm.$root === vm || true) {
+                return '<Root>'
+            }
+        };
 
-    generateComponentTrace = vm => {
-        if (vm._isVue && vm.$parent) ; else {
-            return `\n\n(found in ${formatComponentName(vm)})`
-        }
-    };
+        generateComponentTrace = vm => {
+            if (vm._isVue && vm.$parent) ; else {
+                return `\n\n(found in ${formatComponentName(vm)})`
+            }
+        };
+    }
 
     const callbacks = [];
     let pending = false;
@@ -865,6 +875,10 @@
         }
     }
 
+    function generateCodeFrame (source, start, end) {
+        return 'generateCodeFrame:'+ start+':'+end
+    }
+
     function createFunction (code, errors) {
         try {
             return new Function(code)
@@ -873,8 +887,56 @@
     }
 
     function createCompileToFunctionFn (compile) {
+        const cache = Object.create(null);
         return function compileToFunctions (template, options, vm) {
+            options = extend({}, options);
+            const warn$1 = options.warn || warn;
+            delete options.warn;
+            { // TODO
+                try {
+                    new Function('return 1'); // 是否允许将字符串当作代码执行
+                } catch (e) {
+                    if (e.toString().match(/unsafe-eval|CSP/)) {
+                        warn$1(
+                            'It seems you are using the standalone build of Vue.js in an ' +
+                            'environment with Content Security Policy that prohibits unsafe-eval. ' +
+                            'The template compiler cannot work in this environment. Consider ' +
+                            'relaxing the policy to allow unsafe-eval or pre-compiling your ' +
+                            'templates into render functions.'
+                        );
+                    }
+                }
+            }
+            const key = options.delimiters? String(options.delimiters) + template: template; //生成key
+            if (cache[key]) {
+                return cache[key]
+            }
             const compiled = compile(template, options);
+            compiled.tips = [{
+                msg: '构建成功'
+            }];
+            { // TODO
+                if (compiled.errors && compiled.errors.length) { // 编译失败的时候给出错误提示
+                    if (options.outputSourceRange) {
+                        compiled.errors.forEach(e => {
+                            warn$1(`Error compiling template:\n\n${e.msg}\n\n` +
+                                generateCodeFrame(template, e.start, e.end)
+                                ,vm);
+                        });
+                    } else {
+                        warn$1(`Error compiling template:\n\n${template}\n\n` +
+                            compiled.errors.map(e => `- ${e}`).join('\n') + '\n'
+                            , vm);
+                    }
+                }
+                if (compiled.tips && compiled.tips.length) {
+                    if (options.outputSourceRange) {
+                        compiled.tips.forEach(e => tip(e.msg, vm));
+                    } else {
+                        compiled.tips.forEach(msg => tip(msg, vm));
+                    }
+                }
+            }
             console.log('gsdcompileToFunctions');
             const res = {};
             res.render = createFunction(compiled.render);
@@ -1344,9 +1406,13 @@
     }
 
     const createCompiler = createCompilerCreator(function baseCompile (template, options) {
+        // 通过template拿到ast
         const ast = parse(template.trim(), options);
         console.log('gsdast', ast);
+        // 静态化
         if (options.optimize !== false) ;
+        // AST转换为代码字符串'function(){}
+        // 比如：with(this){return _c('div',{staticClass:"container"},[_v("\n        ")])}
         const code = generate(ast, options);
         console.log('gsdcode', code);
         return {
