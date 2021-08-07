@@ -66,5 +66,12 @@ export function cached (fn) { // 一个高阶函数，避免fn被重复的执行
     })
 }
 
+export function extend (to, _from) { // 合并，以from的优先级更高
+    for (const key in _from) {
+        to[key] = _from[key]
+    }
+    return to
+}
+
 
 

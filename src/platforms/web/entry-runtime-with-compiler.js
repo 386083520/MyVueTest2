@@ -52,6 +52,7 @@ Vue.prototype.$mount = function (el, hydrating) {
                 return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
             }*/
             const { render, staticRenderFns } = compileToFunctions(template, {
+                outputSourceRange: true,
                 shouldDecodeNewlines,
                 shouldDecodeNewlinesForHref,
                 delimiters: options.delimiters,
