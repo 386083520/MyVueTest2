@@ -3,6 +3,8 @@ import {baseWarn} from "../helpers";
 import { pluckModuleFunction } from "../helpers";
 import { parseText } from "./text-parser";
 import {no} from "../../shared/util";
+import { isIE, isEdge, isServerRendering } from "../../core/util/index";
+import { getAndRemoveAttr } from "../helpers";
 
 export let warn
 
@@ -32,6 +34,15 @@ export function processElement (element, options) {
         element = transforms[i](element, options) || element
     }
 }
+function isForbiddenTag (el) { // 是否是一些禁止的tag
+    return (
+        el.tag === 'style' ||
+        (el.tag === 'script' && (
+            !el.attrsMap.type ||
+            el.attrsMap.type === 'text/javascript'
+        ))
+    )
+}
 export function parse (template, options) {
     warn = options.warn || baseWarn
 
@@ -52,7 +63,7 @@ export function parse (template, options) {
     const whitespaceOption = options.whitespace
     let root
     let currentParent
-    let inVPre = false
+    let inVPre = false // 是否标记了v-pre v-pre用于跳过这个元素和它子元素的编译过程，用于显示原本的Mustache语法
     let inPre = false
     let warned = false
 
@@ -87,7 +98,36 @@ export function parse (template, options) {
         shouldKeepComment: options.comments, // 是否保存注释
         outputSourceRange: options.outputSourceRange,
         start (tag, attrs, unary, start, end) {
+            const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag) // 获取标签名的命名空间,如果currentParent有命名空间 继承父ns
+            if (isIE && ns === 'svg') { // 在IE浏览器下处理svg bug
+                attrs = guardIESVGBug(attrs)
+            }
             let element = createASTElement(tag, attrs, currentParent)
+            if (ns) {
+                element.ns = ns
+            }
+            if (true) { // TODO
+
+            }
+            if (isForbiddenTag(element) && !isServerRendering()) { // 判断生成的element是否是禁止标签
+                element.forbidden = true
+                warn(
+                    'Templates should only be responsible for mapping the state to the ' +
+                    'UI. Avoid placing tags with side-effects in your templates, such as ' +
+                    `<${tag}>` + ', as they will not be parsed.',
+                    { start: element.start }
+                )
+            }
+            // 根据preTransforms处理element
+            for (let i = 0; i < preTransforms.length; i++) {
+                element = preTransforms[i](element, options) || element
+            }
+            if (!inVPre) { // 如果没有标记v-pre
+                processPre(element)
+                if (element.pre) {
+                    inVPre = true
+                }
+            }
             if (!root) {
                 root = element
             }
@@ -146,7 +186,22 @@ export function parse (template, options) {
 function makeAttrsMap(attrs) {
     const map = {}
     for (let i = 0, l = attrs.length; i < l; i++) {
+        if (
+            map[attrs[i].name] && !isIE && !isEdge
+        ) {
+            warn('duplicate attribute: ' + attrs[i].name, attrs[i])
+        }
         map[attrs[i].name] = attrs[i].value
     }
     return map
+}
+
+function guardIESVGBug (attrs) { // 处理IE svg的bug
+    return attrs
+}
+
+function processPre (el) {
+    if (getAndRemoveAttr(el, 'v-pre') != null) {
+        el.pre = true
+    }
 }

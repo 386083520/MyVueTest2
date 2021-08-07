@@ -1,4 +1,4 @@
-import { getAndRemoveAttr } from "../helpers";
+import {getAndRemoveAttr} from "../../../../compiler/helpers";
 
 function genData (el) {
     console.log('gsdel', el)
