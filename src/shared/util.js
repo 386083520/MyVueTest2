@@ -25,9 +25,10 @@ export function isTrue (v) {
     return v === true
 }
 
-export const no = (a, b, c) => {
+/*export const no = (a, b, c) => {
     return (a === 'div' || a === 'h1')
-} // TODO
+}*/ // TODO
+export const no = (a, b, c) => false
 
 export const identity = (_) => _
 

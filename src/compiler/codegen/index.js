@@ -1,9 +1,18 @@
 import { pluckModuleFunction } from "../helpers";
+import {baseWarn} from "../helpers";
+import baseDirectives from '../directives/index'
+import { extend, no } from "../../shared/util";
 
 export class CodegenState {
     constructor (options) {
-        this.options = options
+        this.options = options // finalOptionss，经过合并后的
+        this.warn = options.warn || baseWarn
+        this.transforms = pluckModuleFunction(options.modules, 'transformCode')
         this.dataGenFns = pluckModuleFunction(options.modules, 'genData')
+        this.directives = extend(extend({}, baseDirectives), options.directives)
+        const isReservedTag = options.isReservedTag || no // 是否是保留标签
+        this.maybeComponent = (el) => !!el.component || !isReservedTag(el.tag)  // 是否是组件
+        this.staticRenderFns = []
         console.log('gsddataGenFns', this.dataGenFns)
     }
 }
@@ -13,7 +22,7 @@ export function generate (ast, options) {
     const code = ast ? genElement(ast, state) : '_c("div")'
     return {
         render: `with(this){return ${code}}`, // TODO
-        staticRenderFns: {}
+        staticRenderFns: state.staticRenderFns
     }
 }
 
