@@ -1,4 +1,4 @@
-import he from 'he'
+//import he from 'he'
 import { parseHTML } from "./html-parser";
 import {baseWarn} from "../helpers";
 import { pluckModuleFunction } from "../helpers";
@@ -11,8 +11,10 @@ const invalidAttributeRE = /[\s"'<>\/=]/
 const lineBreakRE = /[\r\n]/ // 回车换行
 const whitespaceRE = /\s+/g // 全局匹配空格
 
-const decodeHTMLCached = cached(he.decode)
-
+// const decodeHTMLCached = cached(he.decode)
+const decodeHTMLCached = function (text) { // TODO
+    return text
+}
 export let warn
 
 let transforms
@@ -263,12 +265,16 @@ export function parse (template, options) {
                 }
             }
         },
-        comment (text, start, end) {
+        comment (text, start, end) { // 对一些注释的处理
             if (currentParent) {
-                const child = {
+                const child = { // 注释
                     type: 3,
                     text,
                     isComment: true
+                }
+                if (options.outputSourceRange) {
+                    child.start = start
+                    child.end = end
                 }
                 currentParent.children.push(child)
             }

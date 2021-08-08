@@ -1,7 +1,14 @@
 import { parseFilters } from "./filter-parser";
+import { cached } from "../../shared/util";
 
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
+const regexEscapeRE = /[-.*+?^${}()|[\]\/\\]/g
 const buildRegex = function () { // TODO
+    cached(delimiters => {
+        const open = delimiters[0].replace(regexEscapeRE, '\\$&')
+        const close = delimiters[1].replace(regexEscapeRE, '\\$&')
+        return new RegExp(open + '((?:.|\\n)+?)' + close, 'g')
+    })
 }
 export function parseText (text, delimiters) {
     const tagRE = delimiters ? buildRegex(delimiters) : defaultTagRE
@@ -16,12 +23,17 @@ export function parseText (text, delimiters) {
         index = match.index
         console.log('gsdindex', index, lastIndex)
         if (index > lastIndex) {
-            // TODO
+            rawTokens.push(tokenValue = text.slice(lastIndex, index))
+            tokens.push(JSON.stringify(tokenValue))
         }
         const exp = parseFilters(match[1].trim())
         tokens.push(`_s(${exp})`)
         rawTokens.push({ '@binding': exp })
         lastIndex = index + match[0].length
+    }
+    if (lastIndex < text.length) {
+        rawTokens.push(tokenValue = text.slice(lastIndex))
+        tokens.push(JSON.stringify(tokenValue))
     }
     console.log('gsdtokens', tokens)
     console.log('gsdrawTokens', rawTokens)

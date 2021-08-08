@@ -19,7 +19,8 @@ const builds = {
     'web-full-dev': {
         entry: resolve('web/entry-runtime-with-compiler.js'),
         dest: resolve('dist/vue.js'),
-        format: 'umd'
+        format: 'umd',
+        alias: { he: './entity-decoder' },
     }
 }
 

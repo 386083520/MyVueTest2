@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="container" id="app">
-        <div>{{aaa}}</div>
+        ccc{{aaa.bbb}}{{abc}}dd
     </div>
     <!--<template id="abb">
         <div>abcd</div>
@@ -19,11 +19,12 @@
         let vm = new Vue({
             el: '#app',
             data: {
-                'aaa': 'aaab'
+                'aaa': {
+                    'bbb': 'aaabbb'
+                },
+                'abc': 'aabbcc'
             }
         })
-        let {render} = Vue.compile('<div>abc{{aaa}}</div>')
-        console.log('gsdrender111', render)
     </script>
 </body>
 </html>

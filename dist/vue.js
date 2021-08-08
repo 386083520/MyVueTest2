@@ -133,10 +133,19 @@
     }
 
     const inBrowser = typeof window !== 'undefined';
+    const UA = inBrowser && window.navigator.userAgent.toLowerCase();
+    const isIE = UA && /msie|trident/.test(UA);
+    const isEdge = UA && UA.indexOf('edge/') > 0;
 
     function isNative (Ctor) {
         return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
     }
+
+    let _isServer;
+    const isServerRendering = () => {
+        _isServer = false; // TODO
+        return _isServer
+    };
 
     let warn = noop;
     let tip = noop;
@@ -1111,7 +1120,9 @@
                     if (comment.test(html)) {
                         const commentEnd = html.indexOf('-->');
                         if (commentEnd >= 0) {
-                            if (options.shouldKeepComment) ;
+                            if (options.shouldKeepComment) {
+                                options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3);
+                            }
                             advance(commentEnd + 3);
                             continue
                         }
@@ -1131,8 +1142,9 @@
                     const endTagMatch = html.match(endTag);
                     if (endTagMatch) {
                         console.log('gsdendTagMatch', endTagMatch);
+                        const curIndex = index;
                         advance(endTagMatch[0].length);
-                        parseEndTag(endTagMatch[1]);
+                        parseEndTag(endTagMatch[1], curIndex, index);
                         continue
                     }
                     const startTagMatch = parseStartTag();
@@ -1157,7 +1169,9 @@
                 if (text) {
                     advance(text.length);
                 }
-                if (options.chars && text) ;
+                if (options.chars && text) {
+                    options.chars(text, index - text.length, index);
+                }
             }
             if (html === last) {
                 /*if (!stack.length && options.warn) {
@@ -1216,7 +1230,9 @@
                 stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end });
                 lastTag = tagName;
             }
-            if (options.start) ;
+            if (options.start) {
+                options.start(tagName, attrs, unary, match.start, match.end);
+            }
         }
         function parseEndTag (tagName, start, end) {
             let pos, lowerCasedTagName;
@@ -1236,17 +1252,12 @@
                             { start: stack[i].start, end: stack[i].end }
                         );
                     }
-                    if (options.end) ;
+                    if (options.end) {
+                        options.end(stack[i].tag, start, end);
+                    }
                 }
             }
         }
-
-        let tag1 = 'div';
-        let atts1 = [{"name":"class","value":"container","start":5,"end":22},{"name":"id","value":"app","start":23,"end":31}];
-        let unary1 = false;
-        let start1 = 0;
-        let end1 = 32;
-        options.start(tag1, atts1, unary1, start1, end1);
     }
 
     function baseWarn (msg, range) {
@@ -1290,14 +1301,22 @@
         const tokens = [];
         const rawTokens = [];
         let lastIndex = tagRE.lastIndex = 0;
-        let match, index;
+        let match, index, tokenValue;
         while ((match = tagRE.exec(text))) {
             index = match.index;
             console.log('gsdindex', index, lastIndex);
+            if (index > lastIndex) {
+                rawTokens.push(tokenValue = text.slice(lastIndex, index));
+                tokens.push(JSON.stringify(tokenValue));
+            }
             const exp = parseFilters(match[1].trim());
             tokens.push(`_s(${exp})`);
             rawTokens.push({ '@binding': exp });
             lastIndex = index + match[0].length;
+        }
+        if (lastIndex < text.length) {
+            rawTokens.push(tokenValue = text.slice(lastIndex));
+            tokens.push(JSON.stringify(tokenValue));
         }
         console.log('gsdtokens', tokens);
         console.log('gsdrawTokens', rawTokens);
@@ -1309,8 +1328,16 @@
         }
     }
 
-    const invalidAttributeRE = /[\s"'<>\/=]/;
+    //import he from 'he'
 
+    const invalidAttributeRE = /[\s"'<>\/=]/;
+    const lineBreakRE = /[\r\n]/; // 回车换行
+    const whitespaceRE = /\s+/g; // 全局匹配空格
+
+    // const decodeHTMLCached = cached(he.decode)
+    const decodeHTMLCached = function (text) { // TODO
+        return text
+    };
     let warn$1;
 
     let transforms;
@@ -1362,11 +1389,12 @@
         delimiters = options.delimiters;
 
         const stack = [];
-        const preserveWhitespace = options.preserveWhitespace !== false; // 去掉空格
+        const preserveWhitespace = options.preserveWhitespace !== false; // 保留空格
         const whitespaceOption = options.whitespace;
         let root;
-        let currentParent;
+        let currentParent; // 当前的父节点
         let inVPre = false; // 是否标记了v-pre v-pre用于跳过这个元素和它子元素的编译过程，用于显示原本的Mustache语法
+        let inPre = false;
         let warned = false;
 
         function warnOnce (msg, range) { // 多次只警告一次
@@ -1455,7 +1483,9 @@
                         inVPre = true;
                     }
                 }
-                if (platformIsPreTag(element.tag)) ;
+                if (platformIsPreTag(element.tag)) { // pre 元素可定义预格式化的文本。被包围在 pre 元素中的文本通常会保留空格和换行符
+                    inPre = true;
+                }
                 if (inVPre) {
                     processRawAttrs(element);
                 }else if(!element.processed){ // 没有v-pre 并且没有processed
@@ -1475,29 +1505,70 @@
                 }else {
                     closeElement(element);
                 }
-
-                console.log('gsdelement', Object.assign({}, element));
             },
             end (tag, start, end) {
                 const element = stack[stack.length - 1];
                 stack.length -= 1;
+                currentParent = stack[stack.length - 1];
+                if (options.outputSourceRange) {
+                    element.end = end;
+                }
                 closeElement(element);
             },
             chars (text, start, end) {
+                if (!currentParent) {
+                    { // TODO
+                        if (text === template) {
+                            warnOnce(
+                                'Component template requires a root element, rather than just text.',
+                                { start }
+                            );
+                        }else if((text = text.trim())) {
+                            warnOnce(
+                                `text "${text}" outside root element will be ignored.`,
+                                { start }
+                            );
+                        }
+                    }
+                    return
+                }
+                if (isIE && // 解决IE的bug 由于placeholder是 html5的新属性，可想而知，仅支持html5的浏览器才支持placeholder，目前最新的firefox、chrome、safari以及ie10都支持，ie6到ie9都不支持。
+                    currentParent.tag === 'textarea' &&
+                    currentParent.attrsMap.placeholder === text
+                ) {
+                    return
+                }
                 const children = currentParent.children;
+                if (inPre || text.trim()) { // 是pre或者text不为空
+                    text = isTextTag(currentParent) ? text: decodeHTMLCached(text);
+                } else if (!children.length) {
+                    text = '';
+                } else if (whitespaceOption) {
+                    if (whitespaceOption === 'condense') {
+                        text = lineBreakRE.test(text) ? '' : ' ';
+                    } else {
+                        text = ' ';
+                    }
+                } else {
+                    text = preserveWhitespace ? ' ' : '';
+                }
                 if (text) {
+                    if (!inPre && whitespaceOption === 'condense') {
+                        text = text.replace(whitespaceRE, ' ');
+                    }
                     let res;
                     let child;
+                    // 不是--vpre 并且text不为空并且parseText有结果
                     if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) { // TODO
                         console.log('gsdres', res);
-                        child = {
+                        child = { // 表达式类型的
                             type: 2,
                             expression: res.expression,
                             tokens: res.tokens,
                             text
                         };
-                    }else if(text !== ' ' || !children.length) { // TODO
-                        child = {
+                    }else if(text !== ' ' || !children.length || children[children.length - 1].text !== ' ') { //text不为空或者children为空或者。。。     // TODO
+                        child = { // 普通的文本节点
                             type: 3,
                             text
                         };
@@ -1511,13 +1582,17 @@
                     }
                 }
             },
-            comment (text, start, end) {
+            comment (text, start, end) { // 对一些注释的处理
                 if (currentParent) {
-                    const child = {
+                    const child = { // 注释
                         type: 3,
                         text,
                         isComment: true
                     };
+                    if (options.outputSourceRange) {
+                        child.start = start;
+                        child.end = end;
+                    }
                     currentParent.children.push(child);
                 }
             }
@@ -1614,6 +1689,10 @@
             el.ifConditions = [];
         }
         el.ifConditions.push(condition);
+    }
+
+    function isTextTag (el) {
+        return el.tag === 'script' || el.tag === 'style'
     }
 
     var baseDirectives = {
@@ -1754,7 +1833,11 @@
         directives,
         expectHTML: true,
         isReservedTag, // 是否是保留标签
-        isUnaryTag
+        isUnaryTag, // 一元标签
+        canBeLeftOpenTag, // 以下标签如果只写了左侧的tag，浏览器会自动补全
+        mustUseProp, // TODO
+        getTagNamespace,  // 获取标签名的命名空间
+        isPreTag // 是否是pre标签
     };
 
     const { compile, compileToFunctions } = createCompiler(baseOptions);
