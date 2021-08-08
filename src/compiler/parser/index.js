@@ -1,12 +1,17 @@
+import he from 'he'
 import { parseHTML } from "./html-parser";
 import {baseWarn} from "../helpers";
 import { pluckModuleFunction } from "../helpers";
 import { parseText } from "./text-parser";
-import {no} from "../../shared/util";
+import {no, cached} from "../../shared/util";
 import { isIE, isEdge, isServerRendering } from "../../core/util/index";
 import { getAndRemoveAttr } from "../helpers";
 
 const invalidAttributeRE = /[\s"'<>\/=]/
+const lineBreakRE = /[\r\n]/ // 回车换行
+const whitespaceRE = /\s+/g // 全局匹配空格
+
+const decodeHTMLCached = cached(he.decode)
 
 export let warn
 
@@ -61,10 +66,10 @@ export function parse (template, options) {
     delimiters = options.delimiters
 
     const stack = []
-    const preserveWhitespace = options.preserveWhitespace !== false // 去掉空格
+    const preserveWhitespace = options.preserveWhitespace !== false // 保留空格
     const whitespaceOption = options.whitespace
     let root
-    let currentParent
+    let currentParent // 当前的父节点
     let inVPre = false // 是否标记了v-pre v-pre用于跳过这个元素和它子元素的编译过程，用于显示原本的Mustache语法
     let inPre = false
     let warned = false
@@ -185,23 +190,66 @@ export function parse (template, options) {
         end (tag, start, end) {
             const element = stack[stack.length - 1]
             stack.length -= 1
+            currentParent = stack[stack.length - 1];
+            if (options.outputSourceRange) {
+                element.end = end
+            }
             closeElement(element)
         },
         chars (text, start, end) {
+            if (!currentParent) {
+                if (true) { // TODO
+                    if (text === template) {
+                        warnOnce(
+                            'Component template requires a root element, rather than just text.',
+                            { start }
+                        )
+                    }else if((text = text.trim())) {
+                        warnOnce(
+                            `text "${text}" outside root element will be ignored.`,
+                            { start }
+                        )
+                    }
+                }
+                return
+            }
+            if (isIE && // 解决IE的bug 由于placeholder是 html5的新属性，可想而知，仅支持html5的浏览器才支持placeholder，目前最新的firefox、chrome、safari以及ie10都支持，ie6到ie9都不支持。
+                currentParent.tag === 'textarea' &&
+                currentParent.attrsMap.placeholder === text
+            ) {
+                return
+            }
             const children = currentParent.children
+            if (inPre || text.trim()) { // 是pre或者text不为空
+                text = isTextTag(currentParent) ? text: decodeHTMLCached(text)
+            } else if (!children.length) {
+                text = ''
+            } else if (whitespaceOption) {
+                if (whitespaceOption === 'condense') {
+                    text = lineBreakRE.test(text) ? '' : ' '
+                } else {
+                    text = ' '
+                }
+            } else {
+                text = preserveWhitespace ? ' ' : ''
+            }
             if (text) {
+                if (!inPre && whitespaceOption === 'condense') {
+                    text = text.replace(whitespaceRE, ' ')
+                }
                 let res
                 let child
+                // 不是--vpre 并且text不为空并且parseText有结果
                 if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) { // TODO
                     console.log('gsdres', res)
-                    child = {
+                    child = { // 表达式类型的
                         type: 2,
                         expression: res.expression,
                         tokens: res.tokens,
                         text
                     }
-                }else if(text !== ' ' || !children.length) { // TODO
-                    child = {
+                }else if(text !== ' ' || !children.length || children[children.length - 1].text !== ' ') { //text不为空或者children为空或者。。。     // TODO
+                    child = { // 普通的文本节点
                         type: 3,
                         text
                     }
@@ -322,4 +370,8 @@ export function addIfCondition (el, condition) {
         el.ifConditions = []
     }
     el.ifConditions.push(condition)
+}
+
+function isTextTag (el) {
+    return el.tag === 'script' || el.tag === 'style'
 }

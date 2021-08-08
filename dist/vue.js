@@ -886,6 +886,27 @@
         return isHTMLTag(tag) || isSVG(tag)
     };
 
+    function getTagNamespace (tag) { // 获取标签名的命名空间
+        if (isSVG(tag)) {
+            return 'svg'
+        }
+        if (tag === 'math') {
+            return 'math'
+        }
+    }
+
+    const isPreTag = (tag) => tag === 'pre';
+
+    const acceptValue = makeMap('input,textarea,option,select,progress');
+    const mustUseProp = (tag, type, attr) => {
+        return (
+            (attr === 'value' && acceptValue(tag)) && type !== 'button' ||
+            (attr === 'selected' && tag === 'option') ||
+            (attr === 'checked' && tag === 'input') ||
+            (attr === 'muted' && tag === 'video')
+        )
+    };
+
     function query (el) { // 根据传入的值找到对应的元素
         if (typeof el === 'string') {
             const selected = document.querySelector(el);
@@ -1090,9 +1111,7 @@
                     if (comment.test(html)) {
                         const commentEnd = html.indexOf('-->');
                         if (commentEnd >= 0) {
-                            if (options.shouldKeepComment) {
-                                options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3);
-                            }
+                            if (options.shouldKeepComment) ;
                             advance(commentEnd + 3);
                             continue
                         }
@@ -1112,9 +1131,8 @@
                     const endTagMatch = html.match(endTag);
                     if (endTagMatch) {
                         console.log('gsdendTagMatch', endTagMatch);
-                        const curIndex = index;
                         advance(endTagMatch[0].length);
-                        parseEndTag(endTagMatch[1], curIndex, index);
+                        parseEndTag(endTagMatch[1]);
                         continue
                     }
                     const startTagMatch = parseStartTag();
@@ -1139,9 +1157,7 @@
                 if (text) {
                     advance(text.length);
                 }
-                if (options.chars && text) {
-                    options.chars(text, index - text.length, index);
-                }
+                if (options.chars && text) ;
             }
             if (html === last) {
                 /*if (!stack.length && options.warn) {
@@ -1200,9 +1216,7 @@
                 stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end });
                 lastTag = tagName;
             }
-            if (options.start) {
-                options.start(tagName, attrs, unary, match.start, match.end);
-            }
+            if (options.start) ;
         }
         function parseEndTag (tagName, start, end) {
             let pos, lowerCasedTagName;
@@ -1222,12 +1236,17 @@
                             { start: stack[i].start, end: stack[i].end }
                         );
                     }
-                    if (options.end) {
-                        options.end(stack[i].tag, start, end);
-                    }
+                    if (options.end) ;
                 }
             }
         }
+
+        let tag1 = 'div';
+        let atts1 = [{"name":"class","value":"container","start":5,"end":22},{"name":"id","value":"app","start":23,"end":31}];
+        let unary1 = false;
+        let start1 = 0;
+        let end1 = 32;
+        options.start(tag1, atts1, unary1, start1, end1);
     }
 
     function baseWarn (msg, range) {
@@ -1237,6 +1256,23 @@
         return modules
             ? modules.map(m => m[key]).filter(_ => _)
             : []
+    }
+
+    function getAndRemoveAttr (el,name, removeFromMap) { // 获取并删除attr
+        let val;
+        if ((val = el.attrsMap[name]) != null) {
+            const list = el.attrsList;
+            for (let i = 0, l = list.length; i < l; i++) {
+                if (list[i].name === name) {
+                    list.splice(i, 1);
+                    break
+                }
+            }
+            if (removeFromMap) {
+                delete el.attrsMap[name];
+            }
+        }
+        return val
     }
 
     function parseFilters (exp) {
@@ -1273,10 +1309,18 @@
         }
     }
 
+    const invalidAttributeRE = /[\s"'<>\/=]/;
+
     let warn$1;
 
     let transforms;
+    let preTransforms;
+    let postTransforms;
     let delimiters;
+
+    let platformIsPreTag;
+    let platformMustUseProp;
+    let platformGetTagNamespace;
 
     function createASTElement (tag, attrs, parent) {
         return {
@@ -1294,32 +1338,145 @@
             element = transforms[i](element, options) || element;
         }
     }
+    function isForbiddenTag (el) { // 是否是一些禁止的tag
+        return (
+            el.tag === 'style' ||
+            (el.tag === 'script' && (
+                !el.attrsMap.type ||
+                el.attrsMap.type === 'text/javascript'
+            ))
+        )
+    }
     function parse (template, options) {
+        warn$1 = options.warn || baseWarn;
+
+        platformIsPreTag = options.isPreTag || no; // 判断是否是pre标签
+
+        platformMustUseProp = options.mustUseProp || no;
+        platformGetTagNamespace = options.getTagNamespace || no;
+        const isReservedTag = options.isReservedTag || no;
+        transforms = pluckModuleFunction(options.modules, 'transformNode');
+        preTransforms = pluckModuleFunction(options.modules, 'preTransformNode');
+        postTransforms = pluckModuleFunction(options.modules, 'postTransformNode');
+
         delimiters = options.delimiters;
+
+        const stack = [];
+        const preserveWhitespace = options.preserveWhitespace !== false; // 去掉空格
+        const whitespaceOption = options.whitespace;
         let root;
         let currentParent;
-        const stack = [];
-        warn$1 = options.warn || baseWarn;
-        transforms = pluckModuleFunction(options.modules, 'transformNode');
-        function closeElement (element) {
-            if ( !element.processed) {
+        let inVPre = false; // 是否标记了v-pre v-pre用于跳过这个元素和它子元素的编译过程，用于显示原本的Mustache语法
+        let warned = false;
+
+        function warnOnce (msg, range) { // 多次只警告一次
+            if (!warned) {
+                warned = true;
+                warn$1(msg, range);
+            }
+        }
+
+
+        function closeElement (element) {// 关闭element // TODO
+            if (!inVPre && !element.processed) {
                 element = processElement(element, options);
             }
         }
+
+        function checkRootConstraints (el) { // 校验检查，不要用slot、template做根节点，也不要用 v-for 属性，因为这些都可能产生多个根节点
+            if (el.tag === 'slot' || el.tag === 'template') {
+                warnOnce(
+                    `Cannot use <${el.tag}> as component root element because it may ` +
+                    'contain multiple nodes.',
+                    { start: el.start }
+                );
+            }
+            if (el.attrsMap.hasOwnProperty('v-for')) {
+                warnOnce(
+                    'Cannot use v-for on stateful component root element because ' +
+                    'it renders multiple elements.',
+                    el.rawAttrsMap['v-for']
+                );
+            }
+        }
         parseHTML(template, {
-            warn: warn$1,
+            warn: warn$1, // 警告函数
             expectHTML: options.expectHTML,
-            isUnaryTag: options.isUnaryTag,
-            shouldKeepComment: options.comments,
+            isUnaryTag: options.isUnaryTag, // 是否是一元标签
+            canBeLeftOpenTag: options.canBeLeftOpenTag,
+            shouldDecodeNewlines: options.shouldDecodeNewlines,
+            shouldDecodeNewlinesForHref: options.shouldDecodeNewlinesForHref,
+            shouldKeepComment: options.comments, // 是否保存注释
+            outputSourceRange: options.outputSourceRange,
             start (tag, attrs, unary, start, end) {
+                const ns = (currentParent && currentParent.ns) || platformGetTagNamespace(tag); // 获取标签名的命名空间,如果currentParent有命名空间 继承父ns
+                if (isIE && ns === 'svg') { // 在IE浏览器下处理svg bug
+                    attrs = guardIESVGBug(attrs);
+                }
                 let element = createASTElement(tag, attrs, currentParent);
+                if (ns) {
+                    element.ns = ns;
+                }
+                { // TODO
+                    if (options.outputSourceRange) {
+                        element.start = start;
+                        element.end = end;
+                        element.rawAttrsMap = []; // TODO
+                    }
+                    attrs.forEach(attr => {
+                        if (invalidAttributeRE.test(attr.name)) {
+                            warn$1(
+                                `Invalid dynamic argument expression: attribute names cannot contain ` +
+                                `spaces, quotes, <, >, / or =.`,
+                                {
+                                    start: attr.start + attr.name.indexOf(`[`),
+                                    end: attr.start + attr.name.length
+                                }
+                            );
+                        }
+                    });
+                }
+                if (isForbiddenTag(element) && !isServerRendering()) { // 判断生成的element是否是禁止标签
+                    element.forbidden = true;
+                    warn$1(
+                        'Templates should only be responsible for mapping the state to the ' +
+                        'UI. Avoid placing tags with side-effects in your templates, such as ' +
+                        `<${tag}>` + ', as they will not be parsed.',
+                        { start: element.start }
+                    );
+                }
+                // 根据preTransforms处理element
+                for (let i = 0; i < preTransforms.length; i++) {
+                    element = preTransforms[i](element, options) || element;
+                }
+                if (!inVPre) { // 如果没有标记v-pre
+                    processPre(element);
+                    if (element.pre) {
+                        inVPre = true;
+                    }
+                }
+                if (platformIsPreTag(element.tag)) ;
+                if (inVPre) {
+                    processRawAttrs(element);
+                }else if(!element.processed){ // 没有v-pre 并且没有processed
+                    processFor(element); // v-for
+                    processIf(element); // v-if
+                    processOnce(element); // v-once
+                }
                 if (!root) {
                     root = element;
+                    { // TODO
+                        checkRootConstraints(root);
+                    }
                 }
                 if (!unary) {
                     currentParent = element;
                     stack.push(element);
+                }else {
+                    closeElement(element);
                 }
+
+                console.log('gsdelement', Object.assign({}, element));
             },
             end (tag, start, end) {
                 const element = stack[stack.length - 1];
@@ -1331,7 +1488,7 @@
                 if (text) {
                     let res;
                     let child;
-                    if ( text !== ' ' && (res = parseText(text, delimiters))) { // TODO
+                    if (!inVPre && text !== ' ' && (res = parseText(text, delimiters))) { // TODO
                         console.log('gsdres', res);
                         child = {
                             type: 2,
@@ -1371,9 +1528,92 @@
     function makeAttrsMap(attrs) {
         const map = {};
         for (let i = 0, l = attrs.length; i < l; i++) {
+            if (
+                map[attrs[i].name] && !isIE && !isEdge
+            ) {
+                warn$1('duplicate attribute: ' + attrs[i].name, attrs[i]);
+            }
             map[attrs[i].name] = attrs[i].value;
         }
         return map
+    }
+
+    function guardIESVGBug (attrs) { // 处理IE svg的bug
+        return attrs
+    }
+
+    function processPre (el) {
+        if (getAndRemoveAttr(el, 'v-pre') != null) {
+            el.pre = true;
+        }
+    }
+
+    function processRawAttrs (el) { // 存在v-pre的时候，遍历当前所有的attrsList，依次保存到e.attrs上面
+        const list = el.attrsList;
+        const len = list.length;
+        if (len) {
+            const attrs = el.attrs = new Array(len);
+            for (let i = 0; i < len; i++) {
+                attrs[i] = {
+                    name: list[i].name,
+                    value: JSON.stringify(list[i].value)
+                };
+                if (list[i].start != null) {
+                    attrs[i].start = list[i].start;
+                    attrs[i].end = list[i].end;
+                }
+            }
+        } else if (!el.pre) ;
+    }
+
+    function processFor (el) { // 处理v-for
+        let exp;
+        if ((exp = getAndRemoveAttr(el, 'v-for'))) {
+            const res = parseFor(exp);
+            if (res) ;else { // TODO
+                warn$1(
+                    `Invalid v-for expression: ${exp}`,
+                    el.rawAttrsMap['v-for']
+                );
+            }
+        }
+    }
+
+    function processIf (el) {
+        const exp = getAndRemoveAttr(el, 'v-if');
+        if (exp) {
+            el.if = exp;
+            addIfCondition(el, {
+                exp: exp,
+                block: el
+            });
+        } else {
+            if (getAndRemoveAttr(el, 'v-else') != null) {
+                el.else = true;
+            }
+            const elseif = getAndRemoveAttr(el, 'v-else-if');
+            if (elseif) {
+                el.elseif = elseif;
+            }
+        }
+    }
+
+    function processOnce (el) {
+        const once = getAndRemoveAttr(el, 'v-once');
+        if (once != null) {
+            el.once = true; //子组件中分别加入v-once，当每次切换组件效果时，不再需要每次都经过 创建——销毁 的过程，而是在内存中直接取用上一次使用过的组件的内容，可有效提高静态内容的展示效率
+        }
+    }
+
+    function parseFor (exp) {
+        return exp
+    }
+
+    function addIfCondition (el, condition) {
+        if (!el.ifConditions) {
+            el.ifConditions = [];
+        }
+        el.ifConditions.push(condition);
     }
 
     var baseDirectives = {
@@ -1470,16 +1710,14 @@
         }
     });
 
-    const isUnaryTag = makeMap(
+    const isUnaryTag = makeMap( // 是否是一元标签
         'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
         'link,meta,param,source,track,wbr'
     );
 
-    function getAndRemoveAttr (el, name, removeFromMap){
-        let val;
-        if ((val = el.attrsMap[name]) != null) ;
-        return val
-    }
+    const canBeLeftOpenTag = makeMap( // 以下标签如果只写了左侧的tag，浏览器会自动补全
+        'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
+    );
 
     function genData$1 (el) {
         console.log('gsdel', el);
