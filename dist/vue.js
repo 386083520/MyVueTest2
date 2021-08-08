@@ -1361,9 +1361,15 @@
         }
     }
     function processElement (element, options) {
-        for (let i = 0; i < transforms.length; i++) {
+        element.plain = (
+            !element.key &&
+            !element.scopedSlots &&
+            !element.attrsList.length
+        );
+        for (let i = 0; i < transforms.length; i++) { // 根据transforms处理element,在closeElement里面调用的
             element = transforms[i](element, options) || element;
         }
+        return element
     }
     function isForbiddenTag (el) { // 是否是一些禁止的tag
         return (
@@ -1406,8 +1412,18 @@
 
 
         function closeElement (element) {// 关闭element // TODO
+            trimEndingWhitespace(element);
             if (!inVPre && !element.processed) {
                 element = processElement(element, options);
+            }
+        }
+
+        function trimEndingWhitespace (el) { // 若当前元素不是pre元素，则删除元素尾部的空白文本节点
+            if (!inPre) { // 如果不是pre标签
+                let lastNode;
+                while ((lastNode = el.children[el.children.length - 1]) && lastNode.type === 3 && lastNode.text === ' ') {
+                    el.children.pop();
+                }
             }
         }
 
@@ -1514,6 +1530,7 @@
                     element.end = end;
                 }
                 closeElement(element);
+                console.log('gsdelement', element);
             },
             chars (text, start, end) {
                 if (!currentParent) {

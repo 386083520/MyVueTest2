@@ -39,9 +39,21 @@ export function createASTElement (tag, attrs, parent) {
     }
 }
 export function processElement (element, options) {
-    for (let i = 0; i < transforms.length; i++) {
+    processKey(element)
+    element.plain = (
+        !element.key &&
+        !element.scopedSlots &&
+        !element.attrsList.length
+    )
+    processRef(element)
+    processSlotContent(element)
+    processSlotOutlet(element)
+    processComponent(element)
+    for (let i = 0; i < transforms.length; i++) { // 根据transforms处理element,在closeElement里面调用的
         element = transforms[i](element, options) || element
     }
+    processAttrs(element)
+    return element
 }
 function isForbiddenTag (el) { // 是否是一些禁止的tag
     return (
@@ -85,13 +97,42 @@ export function parse (template, options) {
 
 
     function closeElement (element) {// 关闭element // TODO
+        trimEndingWhitespace(element)
         if (!inVPre && !element.processed) {
             element = processElement(element, options)
+        }
+        if (!stack.length && element !== root) { // 判断当前是否只有一个根节点
+            if (root.if && (element.elseif || element.else)) {
+                if (true) {
+                    checkRootConstraints(element)
+                }
+                addIfCondition(root, { // TODO
+                    exp: element.elseif,
+                    block: element
+                })
+            } else if (true) { // TODO
+                warnOnce(
+                    `Component template should contain exactly one root element. ` +
+                    `If you are using v-if on multiple elements, ` +
+                    `use v-else-if to chain them instead.`,
+                    { start: element.start }
+                )
+            }
+        }
+        if (currentParent && !element.forbidden) {
+            if (element.elseif || element.else) {
+                processIfConditions(element, currentParent)
+            }
         }
     }
 
     function trimEndingWhitespace (el) { // 若当前元素不是pre元素，则删除元素尾部的空白文本节点
-
+        if (!inPre) { // 如果不是pre标签
+            let lastNode
+            while ((lastNode = el.children[el.children.length - 1]) && lastNode.type === 3 && lastNode.text === ' ') {
+                el.children.pop()
+            }
+        }
     }
 
     function checkRootConstraints (el) { // 校验检查，不要用slot、template做根节点，也不要用 v-for 属性，因为这些都可能产生多个根节点
@@ -192,11 +233,13 @@ export function parse (template, options) {
         end (tag, start, end) {
             const element = stack[stack.length - 1]
             stack.length -= 1
+               // <div class='a'><div class='b'>fdasfdas</div></div>
             currentParent = stack[stack.length - 1];
             if (options.outputSourceRange) {
                 element.end = end
             }
             closeElement(element)
+            console.log('gsdelement', element)
         },
         chars (text, start, end) {
             if (!currentParent) {
@@ -380,4 +423,62 @@ export function addIfCondition (el, condition) {
 
 function isTextTag (el) {
     return el.tag === 'script' || el.tag === 'style'
+}
+
+function processKey (el) {
+
+}
+
+function processRef(el) {
+
+}
+
+function processSlotContent(el) {
+
+}
+
+function processSlotOutlet(el) {
+
+}
+
+function processComponent(el) {
+
+}
+
+function processAttrs(el) {
+
+}
+
+function processIfConditions (el, parent) { // elseif 和else的时候触发
+    const prev = findPrevElement(parent.children)
+    if (prev && prev.if) {
+        addIfCondition(prev, { // TODO
+            exp: el.elseif,
+            block: el
+        })
+    } else if (true) { // TODO
+        warn(
+            `v-${el.elseif ? ('else-if="' + el.elseif + '"') : 'else'} ` +
+            `used on element <${el.tag}> without corresponding v-if.`,
+            el.rawAttrsMap[el.elseif ? 'v-else-if' : 'v-else']
+        )
+    }
+}
+
+function findPrevElement (children) { // 找到上一个元素
+    let i = children.length
+    while (i--) {
+        if (children[i].type === 1) {
+            return children[i]
+        } else {
+            if (children[i].text !== ' ') {
+                warn(
+                    `text "${children[i].text.trim()}" between v-if and v-else(-if) ` +
+                    `will be ignored.`,
+                    children[i]
+                )
+                children.pop()
+            }
+        }
+    }
 }
