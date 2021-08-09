@@ -122,6 +122,9 @@ export function parse (template, options) {
         if (currentParent && !element.forbidden) {
             if (element.elseif || element.else) {
                 processIfConditions(element, currentParent)
+            } else {
+                if (element.slotScope) {
+                }
             }
         }
     }
@@ -434,7 +437,12 @@ function processRef(el) {
 }
 
 function processSlotContent(el) {
+    let slotScope
+    if (el.tag === 'template') {
 
+    } else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
+
+    }
 }
 
 function processSlotOutlet(el) {
