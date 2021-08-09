@@ -5,7 +5,7 @@ import { pluckModuleFunction } from "../helpers";
 import { parseText } from "./text-parser";
 import {no, cached} from "../../shared/util";
 import { isIE, isEdge, isServerRendering } from "../../core/util/index";
-import { getAndRemoveAttr } from "../helpers";
+import { getAndRemoveAttr, getBindingAttr } from "../helpers";
 
 const invalidAttributeRE = /[\s"'<>\/=]/
 const lineBreakRE = /[\r\n]/ // 回车换行
@@ -439,10 +439,31 @@ function processRef(el) {
 function processSlotContent(el) {
     let slotScope
     if (el.tag === 'template') {
-
+        slotScope = getAndRemoveAttr(el, 'scope')
+        if (slotScope) {
+            warn(
+                `the "scope" attribute for scoped slots have been deprecated and ` +
+                `replaced by "slot-scope" since 2.5. The new "slot-scope" attribute ` +
+                `can also be used on plain elements in addition to <template> to ` +
+                `denote scoped slots.`,
+                el.rawAttrsMap['scope'],
+                true
+            )
+        }
+        el.slotScope = slotScope || getAndRemoveAttr(el, 'slot-scope')
     } else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
-
+        if (el.attrsMap['v-for']) {
+            warn(
+                `Ambiguous combined usage of slot-scope and v-for on <${el.tag}> ` +
+                `(v-for takes higher priority). Use a wrapper <template> for the ` +
+                `scoped slot to make it clearer.`,
+                el.rawAttrsMap['slot-scope'],
+                true
+            )
+        }
+        el.slotScope = slotScope
     }
+    const slotTarget = getBindingAttr(el, 'slot')
 }
 
 function processSlotOutlet(el) {

@@ -630,23 +630,6 @@
         });
     }
 
-    const sharedPropertyDefinition = {
-        enumerable: true,
-        configurable: true,
-        get: noop,
-        set: noop
-    };
-
-    function proxy (target, sourceKey, key) {
-        sharedPropertyDefinition.get = function proxyGetter () {
-            return this[sourceKey][key]
-        };
-        sharedPropertyDefinition.set = function proxySetter (val) {
-            this[sourceKey][key] = val;
-        };
-        Object.defineProperty(target, key, sharedPropertyDefinition);
-    }
-
     function initState (vm) {
         const opts = vm.$options;
         if (opts.data) {
@@ -666,9 +649,6 @@
         let i = keys.length;
         while (i--) {
             const key = keys[i];
-            {
-                proxy(vm, `_data`, key);
-            }
         }
         observe(data);
     }
@@ -1366,6 +1346,7 @@
             !element.scopedSlots &&
             !element.attrsList.length
         );
+        processSlotContent(element);
         for (let i = 0; i < transforms.length; i++) { // 根据transforms处理element,在closeElement里面调用的
             element = transforms[i](element, options) || element;
         }
@@ -1415,6 +1396,31 @@
             trimEndingWhitespace(element);
             if (!inVPre && !element.processed) {
                 element = processElement(element, options);
+            }
+            if (!stack.length && element !== root) { // 判断当前是否只有一个根节点
+                if (root.if && (element.elseif || element.else)) {
+                    {
+                        checkRootConstraints(element);
+                    }
+                    addIfCondition(root, { // TODO
+                        exp: element.elseif,
+                        block: element
+                    });
+                } else { // TODO
+                    warnOnce(
+                        `Component template should contain exactly one root element. ` +
+                        `If you are using v-if on multiple elements, ` +
+                        `use v-else-if to chain them instead.`,
+                        { start: element.start }
+                    );
+                }
+            }
+            if (currentParent && !element.forbidden) {
+                if (element.elseif || element.else) {
+                    processIfConditions(element, currentParent);
+                } else {
+                    if (element.slotScope) ;
+                }
             }
         }
 
@@ -1525,6 +1531,7 @@
             end (tag, start, end) {
                 const element = stack[stack.length - 1];
                 stack.length -= 1;
+                   // <div class='a'><div class='b'>fdasfdas</div></div>
                 currentParent = stack[stack.length - 1];
                 if (options.outputSourceRange) {
                     element.end = end;
@@ -1710,6 +1717,70 @@
 
     function isTextTag (el) {
         return el.tag === 'script' || el.tag === 'style'
+    }
+
+    function processSlotContent(el) {
+        let slotScope;
+        if (el.tag === 'template') {
+            slotScope = getAndRemoveAttr(el, 'scope');
+            if (slotScope) {
+                warn$1(
+                    `the "scope" attribute for scoped slots have been deprecated and ` +
+                    `replaced by "slot-scope" since 2.5. The new "slot-scope" attribute ` +
+                    `can also be used on plain elements in addition to <template> to ` +
+                    `denote scoped slots.`,
+                    el.rawAttrsMap['scope'],
+                    true
+                );
+            }
+            el.slotScope = slotScope || getAndRemoveAttr(el, 'slot-scope');
+        } else if ((slotScope = getAndRemoveAttr(el, 'slot-scope'))) {
+            if (el.attrsMap['v-for']) {
+                warn$1(
+                    `Ambiguous combined usage of slot-scope and v-for on <${el.tag}> ` +
+                    `(v-for takes higher priority). Use a wrapper <template> for the ` +
+                    `scoped slot to make it clearer.`,
+                    el.rawAttrsMap['slot-scope'],
+                    true
+                );
+            }
+            el.slotScope = slotScope;
+        }
+        const slotTarget = getBindingAttr(el, 'slot');
+    }
+
+    function processIfConditions (el, parent) { // elseif 和else的时候触发
+        const prev = findPrevElement(parent.children);
+        if (prev && prev.if) {
+            addIfCondition(prev, { // TODO
+                exp: el.elseif,
+                block: el
+            });
+        } else { // TODO
+            warn$1(
+                `v-${el.elseif ? ('else-if="' + el.elseif + '"') : 'else'} ` +
+                `used on element <${el.tag}> without corresponding v-if.`,
+                el.rawAttrsMap[el.elseif ? 'v-else-if' : 'v-else']
+            );
+        }
+    }
+
+    function findPrevElement (children) { // 找到上一个元素
+        let i = children.length;
+        while (i--) {
+            if (children[i].type === 1) {
+                return children[i]
+            } else {
+                if (children[i].text !== ' ') {
+                    warn$1(
+                        `text "${children[i].text.trim()}" between v-if and v-else(-if) ` +
+                        `will be ignored.`,
+                        children[i]
+                    );
+                    children.pop();
+                }
+            }
+        }
     }
 
     var baseDirectives = {

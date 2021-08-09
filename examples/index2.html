@@ -6,18 +6,44 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
 </head>
 <body>
-    <div id="app">{{gsd2}}<aaa></aaa></div>
+    <div id="app">
+        <father></father>
+        <!--<child><p slot="two" slot-scope="fff" v-for="(item,index) of fatherData" :key="index">{{fff.abcd}}</p></child>-->
+        <child><p slot="one" v-for="(item,index) of fatherData" :key="index">aaa</p></child>
+    </div>
+    <template id="childTemp">
+        <div>
+            childTemp
+            <slot name="one"></slot>
+            childTemp2
+            <slot name="two" :abcd="username"></slot>
+        </div>
+    </template>
+    <template id="fatherTemp">
+        <div>
+            fatherTemp
+        </div>
+    </template>
     <script>
+        Vue.component('child', {
+            template: '#childTemp',
+            data() {
+                return {
+                    username: 'gsd'
+                }
+            }
+        })
         new Vue({
             el: '#app',
             components: {
-                'aaa': {
-                    template: '<h1>我是一个child组件</h1>'
+                'father': {
+                    template: '#fatherTemp'
                 }
             },
             data: {
                 gsd2: 'gsdaaabccc',
-                gsd3: 'gsd3'
+                gsd3: 'gsd3',
+                fatherData: [1,2,3,4,5]
             }
         })
     </script>
