@@ -10,7 +10,6 @@
 </head>
 <body>
     <div class="container" id="app">
-        ccc{{aaa.bbb}}{{abc}}dd
     </div>
     <!--<template id="abb">
         <div>abcd</div>
@@ -18,6 +17,7 @@
     <script>
         let vm = new Vue({
             el: '#app',
+            template: '<div class="ccc"/>aaa',
             data: {
                 'aaa': {
                     'bbb': 'aaabbb'

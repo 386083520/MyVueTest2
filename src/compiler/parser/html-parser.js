@@ -1,5 +1,6 @@
 import { makeMap, no } from "../../shared/util";
 import { unicodeRegExp } from "../../core/util/lang";
+import {isNonPhrasingTag, canBeLeftOpenTag} from "../../platforms/web/compiler/util";
 
 const comment = /^<!\--/
 const conditionalComment = /^<!\[/
@@ -25,6 +26,9 @@ const decodingMap = {
 const encodedAttr = /&(?:lt|gt|quot|amp|#39);/g
 const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#39|#10|#9);/g
 
+const isIgnoreNewlineTag = makeMap('pre,textarea', true)
+const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n'
+
 function decodeAttr (value, shouldDecodeNewlines) {
     const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr
     return value.replace(re, match => decodingMap[match])
@@ -36,6 +40,7 @@ export function parseHTML (html, options) {
     const isUnaryTag = options.isUnaryTag || no
     let index = 0
     let last,lastTag
+    console.log('gsdhtml', html)
     while (html) {
         last = html  // 在处理之前存储原来的html的值
         if (!lastTag || !isPlainTextElement(lastTag)) { // lastTag没有，或者lastTag不是script,style,textarea
@@ -72,10 +77,13 @@ export function parseHTML (html, options) {
                     parseEndTag(endTagMatch[1], curIndex, index) // 对结束标签里面的内容做具体的处理
                     continue
                 }
-                const startTagMatch = parseStartTag() // 匹配开始标签
+                const startTagMatch = parseStartTag() // 匹配开始标签，返回一个处理过的match
                 console.log(index, startTagMatch) // 匹配开始标签做的逻辑
                 if (startTagMatch) {
                     handleStartTag(startTagMatch)
+                    if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
+                        advance(1)
+                    }
                     continue
                 }
             } // 检索的<符号的位置===0
@@ -110,22 +118,24 @@ export function parseHTML (html, options) {
         }
     }
     function parseStartTag () {
-        const start = html.match(startTagOpen)
+        const start = html.match(startTagOpen) // 匹配类似<div
         if (start) {
             const match = {
                 tagName: start[1],
                 attrs: [],
                 start: index
             }
-            advance(start[0].length)
-            let end, attr
+            advance(start[0].length) // 跳过开始标签的位置
+            let end, attr // <div class=''>
             while (!(end = html.match(startTagClose))  && (attr = html.match(dynamicArgAttribute) || html.match(attribute))) {
                 attr.start = index
                 advance(attr[0].length)
                 attr.end = index
                 match.attrs.push(attr)
+                console.log('gsdmatch', match)
             }
-            if (end) {
+            if (end) { // <div> <div/>
+                console.log('gsdend', end)
                 match.unarySlash = end[1]
                 advance(end[0].length)
                 match.end = index
@@ -138,12 +148,18 @@ export function parseHTML (html, options) {
         html = html.substring(n)
     }
     function handleStartTag (match) {
-        const tagName = match.tagName
-        const unarySlash = match.unarySlash
+        const tagName = match.tagName // 标签名
+        const unarySlash = match.unarySlash // 是不是单闭合
         if (expectHTML) {
-
+            if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
+                // <p><div></div></p>  -> <p></p><div></div><p></p>
+                parseEndTag(lastTag)
+            }
+            if (canBeLeftOpenTag(tagName) && lastTag === tagName) { // <li><li> -> <li></li>
+                parseEndTag(tagName)
+            }
         }
-        const unary = isUnaryTag(tagName) || !!unarySlash
+        const unary = isUnaryTag(tagName) || !!unarySlash // 判断是不是一元标签
         const l = match.attrs.length
         const attrs = new Array(l)
         for (let i = 0; i < l; i++) {
@@ -155,6 +171,10 @@ export function parseHTML (html, options) {
             attrs[i] = {
                 name: args[1],
                 value: decodeAttr(value, shouldDecodeNewlines)
+            }
+            if (options.outputSourceRange) {
+                attrs[i].start = args.start + args[0].match(/^\s*/).length
+                attrs[i].end = args.end
             }
         }
         if (!unary) {
@@ -192,6 +212,17 @@ export function parseHTML (html, options) {
             }
             stack.length = pos
             lastTag = pos && stack[pos - 1].tag // 栈顶元素的tag值
+        } else if (lowerCasedTagName === 'br') {
+            if (options.start) {
+                options.start(tagName, [], true, start, end)
+            }
+        } else if (lowerCasedTagName === 'p') { // TODO
+            if (options.start) {
+                options.start(tagName, [], false, start, end)
+            }
+            if (options.end) {
+                options.end(tagName, start, end)
+            }
         }
     }
 }
