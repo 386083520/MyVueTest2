@@ -32,53 +32,53 @@ function decodeAttr (value, shouldDecodeNewlines) {
 
 export function parseHTML (html, options) {
     const stack = []
-    let index = 0
-    let last,lastTag
     const expectHTML = options.expectHTML
     const isUnaryTag = options.isUnaryTag || no
+    let index = 0
+    let last,lastTag
     while (html) {
-        last = html
-        if (!lastTag || !isPlainTextElement(lastTag)) {
+        last = html  // 在处理之前存储原来的html的值
+        if (!lastTag || !isPlainTextElement(lastTag)) { // lastTag没有，或者lastTag不是script,style,textarea
             console.log('gsdaaa', lastTag)
-            let textEnd = html.indexOf('<')
-            if (textEnd === 0) {
-                if (comment.test(html)) {
-                    const commentEnd = html.indexOf('-->')
-                    if (commentEnd >= 0) {
-                        if (options.shouldKeepComment) {
+            let textEnd = html.indexOf('<') // 检索的<符号的位置
+            if (textEnd === 0) { // <div></div>
+                if (comment.test(html)) {// 检测html是不是注释
+                    const commentEnd = html.indexOf('-->') // 找到注释的结尾
+                    if (commentEnd >= 0) { // 如果注释有结尾
+                        if (options.shouldKeepComment) { // 如果需要保存注释的话，调用comment方法
                             options.comment(html.substring(4, commentEnd), index, index + commentEnd + 3)
                         }
-                        advance(commentEnd + 3)
+                        advance(commentEnd + 3) // 跳过注释接着往下
                         continue
                     }
                 }
-                if (conditionalComment.test(html)) {
-                    const conditionalEnd = html.indexOf(']>')
-                    if (conditionalEnd >= 0) {
+                if (conditionalComment.test(html)) {  // 检测html是不是条件注释
+                    const conditionalEnd = html.indexOf(']>') // 找到条件注释的结尾
+                    if (conditionalEnd >= 0) {// 如果条件注释有结尾，跳过条件注释接着往下
                         advance(conditionalEnd + 2)
                         continue
                     }
                 }
-                const doctypeMatch = html.match(doctype)
-                if (doctypeMatch) {
+                const doctypeMatch = html.match(doctype) // 检测html是不是<!DOCTYPE...
+                if (doctypeMatch) {  // 如果有<!DOCTYPE，跳过<!DOCTYPE接着往下
                     advance(doctypeMatch[0].length)
                     continue
-                }
-                const endTagMatch = html.match(endTag)
-                if (endTagMatch) {
+                } // 匹配到<!DOCTYPE...后的逻辑处理
+                const endTagMatch = html.match(endTag) // 匹配结束标签 />
+                if (endTagMatch) { // 如果匹配到结束标签做的逻辑
                     console.log('gsdendTagMatch', endTagMatch)
                     const curIndex = index
-                    advance(endTagMatch[0].length)
-                    parseEndTag(endTagMatch[1], curIndex, index)
+                    advance(endTagMatch[0].length) // 调用了advance以后，index会指向一个新的开始的位置
+                    parseEndTag(endTagMatch[1], curIndex, index) // 对结束标签里面的内容做具体的处理
                     continue
                 }
-                const startTagMatch = parseStartTag()
-                console.log(index, startTagMatch)
+                const startTagMatch = parseStartTag() // 匹配开始标签
+                console.log(index, startTagMatch) // 匹配开始标签做的逻辑
                 if (startTagMatch) {
                     handleStartTag(startTagMatch)
                     continue
                 }
-            }
+            } // 检索的<符号的位置===0
             let text,rest,next
             if (textEnd >= 0) {
                 rest = html.slice(textEnd)
@@ -90,8 +90,8 @@ export function parseHTML (html, options) {
                     if (next < 0) break
                 }
                 text = html.substring(0, textEnd)
-            }
-            if (textEnd < 0) {
+            } // 检索的<符号的位置>=0
+            if (textEnd < 0) { // 检索的<符号的位置没找到
             }
             if (text) {
                 advance(text.length)
@@ -166,19 +166,21 @@ export function parseHTML (html, options) {
             options.start(tagName, attrs, unary, match.start, match.end)
         }
     }
-    function parseEndTag (tagName, start, end) {
+    function parseEndTag (tagName, start, end) { // <a></a><b><c><d></c></b>
         let pos, lowerCasedTagName
         if (tagName) {
-            lowerCasedTagName = tagName.toLowerCase()
-            for (pos = stack.length - 1; pos >= 0; pos--) {
+            lowerCasedTagName = tagName.toLowerCase() // tagname转化为小写
+            for (pos = stack.length - 1; pos >= 0; pos--) { // 得到pos, pos表示当前tagname在栈里面的位置
                 if (stack[pos].lowerCasedTag === lowerCasedTagName) {
                     break
                 }
             }
+        } else {
+            pos = 0
         }
-        if (pos >= 0) {
+        if (pos >= 0) { // 找到了tagname,或者没传入tagname
             for (let i = stack.length - 1; i >= pos; i--) {
-                if ((i > pos || !tagName) && options.warn) {
+                if ((i > pos || !tagName) && options.warn) {  // <a><b><c><d></c>
                     options.warn(
                         `tag <${stack[i].tag}> has no matching end tag.`,
                         { start: stack[i].start, end: stack[i].end }
@@ -188,6 +190,8 @@ export function parseHTML (html, options) {
                     options.end(stack[i].tag, start, end)
                 }
             }
+            stack.length = pos
+            lastTag = pos && stack[pos - 1].tag // 栈顶元素的tag值
         }
     }
 }
