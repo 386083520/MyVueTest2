@@ -630,6 +630,23 @@
         });
     }
 
+    const sharedPropertyDefinition = {
+        enumerable: true,
+        configurable: true,
+        get: noop,
+        set: noop
+    };
+
+    function proxy (target, sourceKey, key) {
+        sharedPropertyDefinition.get = function proxyGetter () {
+            return this[sourceKey][key]
+        };
+        sharedPropertyDefinition.set = function proxySetter (val) {
+            this[sourceKey][key] = val;
+        };
+        Object.defineProperty(target, key, sharedPropertyDefinition);
+    }
+
     function initState (vm) {
         const opts = vm.$options;
         if (opts.data) {
@@ -649,6 +666,9 @@
         let i = keys.length;
         while (i--) {
             const key = keys[i];
+            {
+                proxy(vm, `_data`, key);
+            }
         }
         observe(data);
     }
@@ -1240,6 +1260,10 @@
         }
     }
 
+    function parseFilters (exp) {
+        return exp // TODO
+    }
+
     function baseWarn (msg, range) {
         console.error(`[Vue compiler]: ${msg}`);
     }
@@ -1266,8 +1290,18 @@
         return val
     }
 
-    function parseFilters (exp) {
-        return exp // TODO
+    function getBindingAttr (el, name, getStatic) {
+        const dynamicValue =
+            getAndRemoveAttr(el, ':' + name) ||
+            getAndRemoveAttr(el, 'v-bind:' + name);
+        if (dynamicValue != null) {
+            return parseFilters(dynamicValue)
+        } else if (getStatic !== false) {
+            const staticValue = getAndRemoveAttr(el, name);
+            if (staticValue != null) {
+                return JSON.stringify(staticValue)
+            }
+        }
     }
 
     const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g;

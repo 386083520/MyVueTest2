@@ -39,3 +39,27 @@ export function getBindingAttr (el, name, getStatic) {
         }
     }
 }
+
+export function addAttr (el, name, value, range, dynamic) {
+    const attrs = dynamic? (el.dynamicAttrs || (el.dynamicAttrs = [])): (el.attrs || (el.attrs = []))
+    attrs.push(rangeSetItem({ name, value, dynamic }, range))
+    el.plain = false
+}
+
+function rangeSetItem (item, range) {
+    if (range) {
+        if (range.start != null) {
+            item.start = range.start
+        }
+        if (range.end != null) {
+            item.end = range.end
+        }
+    }
+    return item
+}
+
+export function getRawBindingAttr (el, name){ // 从rawAttrsMap去取name的值
+    return el.rawAttrsMap[':' + name] ||
+        el.rawAttrsMap['v-bind:' + name] ||
+        el.rawAttrsMap[name]
+}

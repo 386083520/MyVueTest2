@@ -5,7 +5,7 @@ import { pluckModuleFunction } from "../helpers";
 import { parseText } from "./text-parser";
 import {no, cached} from "../../shared/util";
 import { isIE, isEdge, isServerRendering } from "../../core/util/index";
-import { getAndRemoveAttr, getBindingAttr } from "../helpers";
+import { getAndRemoveAttr, getBindingAttr, addAttr, getRawBindingAttr } from "../helpers";
 
 const invalidAttributeRE = /[\s"'<>\/=]/
 const lineBreakRE = /[\r\n]/ // 回车换行
@@ -464,6 +464,15 @@ function processSlotContent(el) {
         el.slotScope = slotScope
     }
     const slotTarget = getBindingAttr(el, 'slot')
+    if (slotTarget) {
+        el.slotTarget = slotTarget === '""' ? '"default"' : slotTarget
+        el.slotTargetDynamic = !!(el.attrsMap[':slot'] || el.attrsMap['v-bind:slot'])
+        if (el.tag !== 'template' && !el.slotScope) {
+            addAttr(el, 'slot', slotTarget, getRawBindingAttr(el, 'slot'))
+        }
+    }
+    if (true) { // TODO
+    }
 }
 
 function processSlotOutlet(el) {
