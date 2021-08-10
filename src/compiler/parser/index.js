@@ -124,8 +124,21 @@ export function parse (template, options) {
                 processIfConditions(element, currentParent)
             } else {
                 if (element.slotScope) {
+                    const name = element.slotTarget || '"default"'
+                    ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
                 }
             }
+        }
+        element.children = element.children.filter(c => !c.slotScope) // 对children进行过滤，过滤掉包含slotScope
+        trimEndingWhitespace(element)
+        if (element.pre) {
+            inVPre = false
+        }
+        if (platformIsPreTag(element.tag)) {
+            inPre = false
+        }
+        for (let i = 0; i < postTransforms.length; i++) {
+            postTransforms[i](element, options)
         }
     }
 
