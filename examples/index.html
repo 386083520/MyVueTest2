@@ -4,20 +4,15 @@
     <meta charset="UTF-8">
     <title>验证构建</title>
     <script src="../dist/vue.js"></script>
-    <script type="x-template" id="abb">
-        <div>abcde</div>
-    </script>
 </head>
 <body>
     <div class="container" id="app">
+        <div>abcde</div>
     </div>
-    <!--<template id="abb">
-        <div>abcd</div>
-    </template>-->
     <script>
         let vm = new Vue({
             el: '#app',
-            template: 'fdasfdasfad<textarea>abcd</textarea>fdsafdas',
+            template: '<div>aaa</div>',
             data: {
                 'aaa': {
                     'bbb': 'aaabbb'

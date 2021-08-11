@@ -4,6 +4,7 @@ import { normalizeChildren } from "./helpers/index"
 import config from "../config"
 import { isDef, resolveAsset } from "../util/index";
 import { createComponent } from "./create-component";
+import {isReservedTag} from "../../platforms/web/util/index";
 
 const SIMPLE_NORMALIZE = 1
 const ALWAYS_NORMALIZE = 2
@@ -29,6 +30,7 @@ export function _createElement (context, tag, data, children, normalizationType)
     let vnode
     if (typeof tag === 'string') {
         let Ctor
+        config.isReservedTag = isReservedTag //TODO
         if (config.isReservedTag(tag)) {
             vnode = new VNode(
                 config.parsePlatformTagName(tag), data, children,

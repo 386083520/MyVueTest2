@@ -35,7 +35,7 @@ export function genElement (el, state) {
         }else {
             // {staticClass:"container"},[_v("aaa")]
             let data
-            if (true) { // TODO
+            if (!el.plain) { // TODO
                 data = genData(el, state)
             }
             const children = genChildren(el, state, true) // TODO

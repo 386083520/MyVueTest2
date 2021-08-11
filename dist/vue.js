@@ -492,6 +492,67 @@
         return new vnode.componentOptions.Ctor(options)
     }
 
+    const isHTMLTag = makeMap(
+        'html,body,base,head,link,meta,style,title,' +
+        'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
+        'div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,' +
+        'a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,rtc,ruby,' +
+        's,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,' +
+        'embed,object,param,source,canvas,script,noscript,del,ins,' +
+        'caption,col,colgroup,table,thead,tbody,td,th,tr,' +
+        'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' +
+        'output,progress,select,textarea,' +
+        'details,dialog,menu,menuitem,summary,' +
+        'content,element,shadow,template,blockquote,iframe,tfoot'
+    );
+
+    const isSVG = makeMap(
+        'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' +
+        'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
+        'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view',
+        true
+    );
+
+    const isReservedTag = (tag) => {
+        return isHTMLTag(tag) || isSVG(tag)
+    };
+
+    function getTagNamespace (tag) { // 获取标签名的命名空间
+        if (isSVG(tag)) {
+            return 'svg'
+        }
+        if (tag === 'math') {
+            return 'math'
+        }
+    }
+
+    const isPreTag = (tag) => tag === 'pre';
+
+    const acceptValue = makeMap('input,textarea,option,select,progress');
+    const mustUseProp = (tag, type, attr) => {
+        return (
+            (attr === 'value' && acceptValue(tag)) && type !== 'button' ||
+            (attr === 'selected' && tag === 'option') ||
+            (attr === 'checked' && tag === 'input') ||
+            (attr === 'muted' && tag === 'video')
+        )
+    };
+
+    function query (el) { // 根据传入的值找到对应的元素
+        if (typeof el === 'string') {
+            const selected = document.querySelector(el);
+            if (!selected) {
+                warn(
+                    'Cannot find element: ' + el
+                );
+                return document.createElement('div')
+            }
+            return selected
+        }else {
+            return el
+        }
+    }
+
     const ALWAYS_NORMALIZE = 2;
 
     function createElement (context, tag, data, children, normalizationType, alwaysNormalize) {
@@ -513,6 +574,7 @@
         let vnode;
         if (typeof tag === 'string') {
             let Ctor;
+            config.isReservedTag = isReservedTag;
             if (config.isReservedTag(tag)) {
                 vnode = new VNode(
                     config.parsePlatformTagName(tag), data, children,
@@ -870,67 +932,6 @@
         return mountComponent(this, el, hydrating)
     };
 
-    const isHTMLTag = makeMap(
-        'html,body,base,head,link,meta,style,title,' +
-        'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
-        'div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,' +
-        'a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,rtc,ruby,' +
-        's,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,' +
-        'embed,object,param,source,canvas,script,noscript,del,ins,' +
-        'caption,col,colgroup,table,thead,tbody,td,th,tr,' +
-        'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' +
-        'output,progress,select,textarea,' +
-        'details,dialog,menu,menuitem,summary,' +
-        'content,element,shadow,template,blockquote,iframe,tfoot'
-    );
-
-    const isSVG = makeMap(
-        'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' +
-        'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
-        'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view',
-        true
-    );
-
-    const isReservedTag = (tag) => {
-        return isHTMLTag(tag) || isSVG(tag)
-    };
-
-    function getTagNamespace (tag) { // 获取标签名的命名空间
-        if (isSVG(tag)) {
-            return 'svg'
-        }
-        if (tag === 'math') {
-            return 'math'
-        }
-    }
-
-    const isPreTag = (tag) => tag === 'pre';
-
-    const acceptValue = makeMap('input,textarea,option,select,progress');
-    const mustUseProp = (tag, type, attr) => {
-        return (
-            (attr === 'value' && acceptValue(tag)) && type !== 'button' ||
-            (attr === 'selected' && tag === 'option') ||
-            (attr === 'checked' && tag === 'input') ||
-            (attr === 'muted' && tag === 'video')
-        )
-    };
-
-    function query (el) { // 根据传入的值找到对应的元素
-        if (typeof el === 'string') {
-            const selected = document.querySelector(el);
-            if (!selected) {
-                warn(
-                    'Cannot find element: ' + el
-                );
-                return document.createElement('div')
-            }
-            return selected
-        }else {
-            return el
-        }
-    }
-
     function generateCodeFrame (source, start, end) {
         return 'generateCodeFrame:'+ start+':'+end
     }
@@ -1224,8 +1225,9 @@
                     return ''
                 });
                 console.log('gsdrest', rest); // fdsafdas
-                debugger
                 index += html.length - rest.length;
+                html = rest;
+                parseEndTag(stackedTag, index - endTagLength, index);
             }
             if (html === last) {
                 /*if (!stack.length && options.warn) {
@@ -1979,7 +1981,7 @@
             if (el.component) ;else {
                 // {staticClass:"container"},[_v("aaa")]
                 let data;
-                { // TODO
+                if (!el.plain) { // TODO
                     data = genData(el, state);
                 }
                 const children = genChildren(el, state); // TODO
