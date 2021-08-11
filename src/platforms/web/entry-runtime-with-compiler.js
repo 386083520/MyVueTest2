@@ -14,7 +14,7 @@ const idToTemplate = cached(id => {
 
 const mount = Vue.prototype.$mount
 Vue.prototype.$mount = function (el, hydrating) {
-    el = el && query(el)
+    el = el && query(el) // 通过el查询到el具体对应的element
     console.log('gsdel', el)
     if (el === document.body || el === document.documentElement) { // vue需要不能挂载在body或者html上面
         warn(

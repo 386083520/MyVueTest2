@@ -11,7 +11,7 @@ export function tagName(node) {
     return node.tagName
 }
 
-export function parentNode (node) {
+export function parentNode (node) { // 拿到node的parentNode
     return node.parentNode
 }
 
@@ -21,4 +21,12 @@ export function createTextNode (text) {
 
 export function nextSibling (node) {
     return node.nextSibling
+}
+
+export function insertBefore (parentNode, newNode, referenceNode) {
+    parentNode.insertBefore(newNode, referenceNode)
+}
+
+export function removeChild (node, child) { // 移除node指定的子元素
+    node.removeChild(child)
 }

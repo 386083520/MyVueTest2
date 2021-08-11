@@ -29,7 +29,8 @@ export function lifecycleMixin (Vue) {
         const restoreActiveInstance = setActiveInstance(vm)
         vm._vnode = vnode
         if (!prevVnode) {
-            vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false)
+            vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false, vm.$options._parentElm, vm.$options._refElm)
+            vm.$options._parentElm = vm.$options._refElm = null;
         } else {
             vm.$el = vm.__patch__(prevVnode, vnode)
         }

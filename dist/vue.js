@@ -396,7 +396,8 @@
             const restoreActiveInstance = setActiveInstance(vm);
             vm._vnode = vnode;
             if (!prevVnode) {
-                vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false);
+                vm.$el = vm.__patch__(vm.$el, vnode, hydrating, false, vm.$options._parentElm, vm.$options._refElm);
+                vm.$options._parentElm = vm.$options._refElm = null;
             } else {
                 vm.$el = vm.__patch__(prevVnode, vnode);
             }
@@ -574,7 +575,7 @@
         let vnode;
         if (typeof tag === 'string') {
             let Ctor;
-            config.isReservedTag = isReservedTag;
+            config.isReservedTag = isReservedTag; //TODO
             if (config.isReservedTag(tag)) {
                 vnode = new VNode(
                     config.parsePlatformTagName(tag), data, children,
@@ -815,9 +816,17 @@
 
     initGlobalAPI(Vue);
 
+    const SSR_ATTR = 'data-server-rendered';
+
+    function sameVnode (a, b) {
+        return false // TODO
+    }
+
     function createPatchFunction (backend) {
         const { modules, nodeOps } = backend;
-        function createElm (vnode, insertedVnodeQueue, parentElm, refElm) {
+        function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
+            if (isDef(vnode.elm) && isDef(ownerArray)) ;
+            vnode.isRootInsert = !nested;
             if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
                 return
             }
@@ -825,30 +834,37 @@
             const children = vnode.children;
             const tag = vnode.tag;
             if (isDef(tag)) {
-                vnode.elm = nodeOps.createElement(tag, vnode);
-                console.log('gsdelm', vnode.elm);
-                createChildren(vnode, children, insertedVnodeQueue);
-                insert(parentElm, vnode.elm);
+                vnode.elm = vnode.ns? nodeOps.createElementNS(vnode.ns, tag): nodeOps.createElement(tag, vnode);
+                {
+                    console.log('gsdelm', vnode.elm);
+                    createChildren(vnode, children, insertedVnodeQueue);
+                    insert(parentElm, vnode.elm, refElm);
+                }
             } else {
                 vnode.elm = nodeOps.createTextNode(vnode.text);
-                insert(parentElm, vnode.elm);
+                insert(parentElm, vnode.elm, refElm);
             }
         }
         function createChildren (vnode, children, insertedVnodeQueue) {
             if (Array.isArray(children)) {
                 for (let i = 0; i < children.length; ++i) {
-                    createElm(children[i], insertedVnodeQueue, vnode.elm);
+                    createElm(children[i], insertedVnodeQueue, vnode.elm, null, true, children);
                 }
             } else if (isPrimitive(vnode.text)) ;
         }
         function insert (parent, elm, ref) {
             if (isDef(parent)) {
-                if (isDef(ref)) ;else {
+                if (isDef(ref)) {
+                    if (nodeOps.parentNode(ref) === parent) {
+                        console.log('gsdinsert', parent, elm, ref);
+                        nodeOps.insertBefore(parent, elm, ref);
+                    }
+                }else {
                     nodeOps.appendChild(parent, elm);
                 }
             }
         }
-        function emptyNodeAt (elm) {
+        function emptyNodeAt (elm) { // 根据真实的element生成vnode
             return new VNode(nodeOps.tagName(elm).toLowerCase(), {}, [], undefined, elm)
         }
         function createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
@@ -869,19 +885,66 @@
             if (isDef(vnode.data.pendingInsert)) ;
             vnode.elm = vnode.componentInstance.$el;
         }
+        function removeNode (el) { // 删除一个真实的element
+            const parent = nodeOps.parentNode(el);
+            if (isDef(parent)) {
+                nodeOps.removeChild(parent, el);
+            }
+        }
+        function removeVnodes (vnodes, startIdx, endIdx) { // 删除vnodes
+            for (; startIdx <= endIdx; ++startIdx) {
+                const ch = vnodes[startIdx];
+                if (isDef(ch)) {
+                    if (isDef(ch.tag)) {
+                        removeAndInvokeRemoveHook(ch);
+                    }
+                }
+            }
+        }
+        function createRmCb (childElm, listeners) {
+            function remove () {
+                removeNode(childElm);
+            }
+            return remove
+        }
+        function removeAndInvokeRemoveHook (vnode, rm) {
+            if (isDef(rm) || isDef(vnode.data)) {
+                if (isDef(rm)) ;else {
+                    rm = createRmCb(vnode.elm);
+                }
+                rm();
+            } else {
+                removeNode(vnode.elm);
+            }
+        }
         return function patch (oldVnode, vnode, hydrating, removeOnly) {
-            const insertedVnodeQueue = [];
+            if (isUndef(vnode)) {
+                return
+            }
+            const insertedVnodeQueue = [];  // insertedVnodeQueue 在一次 patch 过程中维护的插入的 vnode 的队列
             if (isUndef(oldVnode)) {
                 createElm(vnode, insertedVnodeQueue);
             } else {
-                const isRealElement = isDef(oldVnode.nodeType);
-                if (isRealElement) {
-                    oldVnode = emptyNodeAt(oldVnode);
+                const isRealElement = isDef(oldVnode.nodeType); // 判断老节点是不是一个真实的element
+                if (!isRealElement && sameVnode()) ;else {
+                    if (isRealElement) { // 如果是一个真实的element,会转化为一个vNode当成oldVnode
+                        /*如果节点是一个元素节点，nodeType 属性返回 1。属性节点, nodeType 属性返回 2。文本节点，nodeType 属性返回 3。注释节点，nodeType 属性返回 8。*/
+                        if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
+                            oldVnode.removeAttribute(SSR_ATTR);
+                        }
+                        oldVnode = emptyNodeAt(oldVnode);
+                    }
+                    const oldElm = oldVnode.elm;
+                    const parentElm = nodeOps.parentNode(oldElm);
+                    console.log('gsdcreateElm', vnode);
+                    console.log('gsdref', nodeOps.nextSibling(oldElm));
+                    createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm)); // nextSibling 属性返回指定节点之后紧跟的节点，在相同的树层级中
+                    if (isDef(vnode.parent)) ;
+                    if (isDef(parentElm)) {
+                        console.log('gsdoldVnode', oldVnode);
+                        removeVnodes([oldVnode], 0, 0);
+                    } else if (isDef(oldVnode.tag)) ;
                 }
-                const oldElm = oldVnode.elm;
-                const parentElm = nodeOps.parentNode(oldElm);
-                console.log('gsdcreateElm', vnode);
-                createElm(vnode, insertedVnodeQueue, parentElm, nodeOps.nextSibling(oldElm));
             }
             console.log('gsdpatch', vnode.elm);
             return vnode.elm
@@ -901,7 +964,7 @@
         return node.tagName
     }
 
-    function parentNode (node) {
+    function parentNode (node) { // 拿到node的parentNode
         return node.parentNode
     }
 
@@ -913,6 +976,14 @@
         return node.nextSibling
     }
 
+    function insertBefore (parentNode, newNode, referenceNode) {
+        parentNode.insertBefore(newNode, referenceNode);
+    }
+
+    function removeChild (node, child) { // 移除node指定的子元素
+        node.removeChild(child);
+    }
+
     var nodeOps = /*#__PURE__*/Object.freeze({
         __proto__: null,
         createElement: createElement$1,
@@ -920,7 +991,9 @@
         tagName: tagName,
         parentNode: parentNode,
         createTextNode: createTextNode,
-        nextSibling: nextSibling
+        nextSibling: nextSibling,
+        insertBefore: insertBefore,
+        removeChild: removeChild
     });
 
     const modules = '';
@@ -2103,7 +2176,7 @@
 
     const mount = Vue.prototype.$mount;
     Vue.prototype.$mount = function (el, hydrating) {
-        el = el && query(el);
+        el = el && query(el); // 通过el查询到el具体对应的element
         console.log('gsdel', el);
         if (el === document.body || el === document.documentElement) { // vue需要不能挂载在body或者html上面
             warn(
