@@ -1,5 +1,6 @@
 import Watcher from '../observer/watcher'
 import { noop } from "../util/index"
+import {invokeWithErrorHandling} from "../util/error";
 
 export let activeInstance = null
 
@@ -47,4 +48,15 @@ export function mountComponent (vm, el, hydrating) {
     console.log('gsdmountComponent')
     new Watcher(vm, updateComponent, noop, {}, true)
     return vm
+}
+
+export function callHook (vm, hook) {
+    const handlers = vm.$options[hook]
+    console.log('gsdhandlers', handlers)
+    const info = `${hook} hook`
+    if (handlers) {
+        for (let i = 0, j = handlers.length; i < j; i++) {
+            invokeWithErrorHandling(handlers[i], vm, null, vm, info)
+        }
+    }
 }

@@ -99,6 +99,23 @@
         silent: false // 是否给出提示性的警告
     });
 
+    const SSR_ATTR = 'data-server-rendered';
+
+    const LIFECYCLE_HOOKS = [
+        'beforeCreate',
+        'created',
+        'beforeMount',
+        'mounted',
+        'beforeUpdate',
+        'updated',
+        'beforeDestroy',
+        'destroyed',
+        'activated',
+        'deactivated',
+        'errorCaptured',
+        'serverPrefetch'
+    ];
+
     const strats = config.optionMergeStrategies;
     function resolveAsset (options, type, id, warnMissing) {
         if (typeof id !== 'string') {
@@ -112,6 +129,10 @@
             ? parentVal
             : childVal
     };
+
+    function mergeHook (parentVal, childVal) {
+        console.log('gsdmergeHook');
+    }
 
 
     function mergeOptions (parent, child, vm) {
@@ -131,6 +152,11 @@
         }
         return options
     }
+
+
+    LIFECYCLE_HOOKS.forEach(hook => {
+        strats[hook] = mergeHook;
+    });
 
     const inBrowser = typeof window !== 'undefined';
     const UA = inBrowser && window.navigator.userAgent.toLowerCase();
@@ -368,6 +394,12 @@
         }
     }
 
+    function invokeWithErrorHandling (handler, context, args, vm, info) {
+        let res;
+        res = args ? handler.apply(context, args) : handler.call(context);
+        return res
+    }
+
     let activeInstance = null;
 
     function setActiveInstance(vm) {
@@ -414,6 +446,16 @@
         console.log('gsdmountComponent');
         new Watcher(vm, updateComponent, noop, {}, true);
         return vm
+    }
+
+    function callHook (vm, hook) {
+        const handlers = vm.$options[hook];
+        console.log('gsdhandlers', handlers);
+        if (handlers) {
+            for (let i = 0, j = handlers.length; i < j; i++) {
+                invokeWithErrorHandling(handlers[i], vm, null);
+            }
+        }
     }
 
     const componentVNodeHooks = {
@@ -745,13 +787,16 @@
             if (options && options._isComponent) {
                 initInternalComponent(vm, options);
             }else {
+                debugger
                 vm.$options = mergeOptions(options || {}, resolveConstructorOptions(vm.constructor));
                 console.log('gsd', vm.$options);
             }
             initProxy(vm);
             initLifecycle(vm);
             initRender(vm);
+            callHook(vm, 'beforeCreate');
             initState(vm);
+            callHook(vm, 'created');
             if (vm.$options.el) {
                 console.log('gsd el', vm.$options.el);
                 vm.$mount(vm.$options.el);
@@ -815,8 +860,6 @@
     }
 
     initGlobalAPI(Vue);
-
-    const SSR_ATTR = 'data-server-rendered';
 
     function sameVnode (a, b) {
         return false // TODO

@@ -1,7 +1,7 @@
 import { initRender } from "./render"
 import { initProxy } from "./proxy"
 import { mergeOptions } from "../util/options"
-import { initLifecycle } from "./lifecycle";
+import { initLifecycle, callHook } from "./lifecycle";
 import { initState } from "./state";
 
 export function initMixin (Vue) {
@@ -16,7 +16,9 @@ export function initMixin (Vue) {
         initProxy(vm)
         initLifecycle(vm)
         initRender(vm)
+        callHook(vm, 'beforeCreate')
         initState(vm)
+        callHook(vm, 'created')
         if (vm.$options.el) {
             console.log('gsd el', vm.$options.el)
             vm.$mount(vm.$options.el)

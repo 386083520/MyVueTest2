@@ -1,5 +1,6 @@
 import { hasOwn } from "../../shared/util";
 import config from "../config"
+import {LIFECYCLE_HOOKS} from "../../shared/constants";
 
 const strats = config.optionMergeStrategies
 export function resolveAsset (options, type, id, warnMissing) {
@@ -13,6 +14,10 @@ const defaultStrat = function (parentVal, childVal) {
     return childVal === undefined
         ? parentVal
         : childVal
+}
+
+function mergeHook (parentVal, childVal) {
+    console.log('gsdmergeHook')
 }
 
 
@@ -33,3 +38,8 @@ export function mergeOptions (parent, child, vm) {
     }
     return options
 }
+
+
+LIFECYCLE_HOOKS.forEach(hook => {
+    strats[hook] = mergeHook
+})
