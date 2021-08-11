@@ -14,6 +14,8 @@ const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s
 const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/
 export const isPlainTextElement = makeMap('script,style,textarea', true)
 
+const reCache = {} // 缓存对象
+
 const decodingMap = {
     '&lt;': '<',
     '&gt;': '>',
@@ -88,18 +90,22 @@ export function parseHTML (html, options) {
                 }
             } // 检索的<符号的位置===0
             let text,rest,next
-            if (textEnd >= 0) {
-                rest = html.slice(textEnd)
-                while (!endTag.test(rest)
-                &&!startTagOpen.test(rest) &&
-                !comment.test(rest) &&
-                !conditionalComment.test(rest)) {
-                    next = rest.indexOf('<', 1)
+            if (textEnd >= 0) { // 检索的<符号的位置>=0
+                rest = html.slice(textEnd)  // 从textEnd位置截取获得rest
+                while ( // 如果<符号开头的不是endTag，startTagOpen，comment，conditionalComment
+                    !endTag.test(rest) &&
+                    !startTagOpen.test(rest) &&
+                    !comment.test(rest) &&
+                    !conditionalComment.test(rest)) {
+                    next = rest.indexOf('<', 1)  // fdsafdsaf<fdsafdsa<div>
                     if (next < 0) break
+                    textEnd += next
+                    rest = html.slice(textEnd)
                 }
                 text = html.substring(0, textEnd)
             } // 检索的<符号的位置>=0
             if (textEnd < 0) { // 检索的<符号的位置没找到
+                text = html
             }
             if (text) {
                 advance(text.length)
@@ -108,7 +114,28 @@ export function parseHTML (html, options) {
                 options.chars(text, index - text.length, index)
             }
         } else {
-
+            let endTagLength = 0
+            const stackedTag = lastTag.toLowerCase()
+            const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'))
+            const rest = html.replace(reStackedTag, function (all, text, endTag) {
+                console.log('gsdreStackedTag', reStackedTag, all ,text, endTag)
+                // fdasfdasfad<textarea>abcd</textarea>fdsafdas
+                // /([\s\S]*?)(<\/textarea[^>]*>)/i abcd</textarea> abcd </textarea>
+                endTagLength = endTag.length
+                if (!isPlainTextElement(stackedTag) && stackedTag !== 'noscript') {
+                    text = text
+                        .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298
+                        .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1')
+                }
+                if (options.chars) {
+                    options.chars(text)
+                }
+                return ''
+            })
+            console.log('gsdrest', rest) // fdsafdas
+            index += html.length - rest.length
+            html = rest
+            parseEndTag(stackedTag, index - endTagLength, index)
         }
         if (html === last) {
             /*if (!stack.length && options.warn) {
@@ -177,7 +204,7 @@ export function parseHTML (html, options) {
                 attrs[i].end = args.end
             }
         }
-        if (!unary) {
+        if (!unary) {// 如果不是一元标签，则放入栈里面，同时lasttag为本次的tagname
             // TODO
             stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end })
             lastTag = tagName

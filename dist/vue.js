@@ -1076,6 +1076,23 @@
         }
     }
 
+    const isUnaryTag = makeMap( // 是否是一元标签
+        'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
+        'link,meta,param,source,track,wbr'
+    );
+
+    const canBeLeftOpenTag = makeMap( // 以下标签如果只写了左侧的tag，浏览器会自动补全
+        'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
+    );
+
+    const isNonPhrasingTag = makeMap(
+        'address,article,aside,base,blockquote,body,caption,col,colgroup,dd,' +
+        'details,dialog,div,dl,dt,fieldset,figcaption,figure,footer,form,' +
+        'h1,h2,h3,h4,h5,h6,head,header,hgroup,hr,html,legend,li,menuitem,meta,' +
+        'optgroup,option,param,rp,rt,source,style,summary,tbody,td,tfoot,th,thead,' +
+        'title,tr,track'
+    );
+
     const comment = /^<!\--/;
     const conditionalComment = /^<!\[/;
     const doctype =/^<!DOCTYPE [^>]+>/i;
@@ -1088,6 +1105,8 @@
     const dynamicArgAttribute = /^\s*((?:v-[\w-]+:|@|:|#)\[[^=]+\][^\s"'<>\/=]*)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
     const isPlainTextElement = makeMap('script,style,textarea', true);
 
+    const reCache = {}; // 缓存对象
+
     const decodingMap = {
         '&lt;': '<',
         '&gt;': '>',
@@ -1099,6 +1118,9 @@
     };
     const encodedAttr = /&(?:lt|gt|quot|amp|#39);/g;
     const encodedAttrWithNewLines = /&(?:lt|gt|quot|amp|#39|#10|#9);/g;
+
+    const isIgnoreNewlineTag = makeMap('pre,textarea', true);
+    const shouldIgnoreFirstNewline = (tag, html) => tag && isIgnoreNewlineTag(tag) && html[0] === '\n';
 
     function decodeAttr (value, shouldDecodeNewlines) {
         const re = shouldDecodeNewlines ? encodedAttrWithNewLines : encodedAttr;
@@ -1148,31 +1170,62 @@
                         parseEndTag(endTagMatch[1], curIndex, index); // 对结束标签里面的内容做具体的处理
                         continue
                     }
-                    const startTagMatch = parseStartTag(); // 匹配开始标签
+                    const startTagMatch = parseStartTag(); // 匹配开始标签，返回一个处理过的match
                     console.log(index, startTagMatch); // 匹配开始标签做的逻辑
                     if (startTagMatch) {
                         handleStartTag(startTagMatch);
+                        if (shouldIgnoreFirstNewline(startTagMatch.tagName, html)) {
+                            advance(1);
+                        }
                         continue
                     }
                 } // 检索的<符号的位置===0
                 let text,rest,next;
-                if (textEnd >= 0) {
-                    rest = html.slice(textEnd);
-                    while (!endTag.test(rest)
-                    &&!startTagOpen.test(rest) &&
-                    !comment.test(rest) &&
-                    !conditionalComment.test(rest)) {
-                        next = rest.indexOf('<', 1);
+                if (textEnd >= 0) { // 检索的<符号的位置>=0
+                    rest = html.slice(textEnd);  // 从textEnd位置截取获得rest
+                    while ( // 如果<符号开头的不是endTag，startTagOpen，comment，conditionalComment
+                        !endTag.test(rest) &&
+                        !startTagOpen.test(rest) &&
+                        !comment.test(rest) &&
+                        !conditionalComment.test(rest)) {
+                        next = rest.indexOf('<', 1);  // fdsafdsaf<fdsafdsa<div>
                         if (next < 0) break
+                        textEnd += next;
+                        rest = html.slice(textEnd);
                     }
                     text = html.substring(0, textEnd);
                 } // 检索的<符号的位置>=0
+                if (textEnd < 0) { // 检索的<符号的位置没找到
+                    text = html;
+                }
                 if (text) {
                     advance(text.length);
                 }
                 if (options.chars && text) {
                     options.chars(text, index - text.length, index);
                 }
+            } else {
+                let endTagLength = 0;
+                const stackedTag = lastTag.toLowerCase();
+                const reStackedTag = reCache[stackedTag] || (reCache[stackedTag] = new RegExp('([\\s\\S]*?)(</' + stackedTag + '[^>]*>)', 'i'));
+                const rest = html.replace(reStackedTag, function (all, text, endTag) {
+                    console.log('gsdreStackedTag', reStackedTag, all ,text, endTag);
+                    // fdasfdasfad<textarea>abcd</textarea>fdsafdas
+                    // /([\s\S]*?)(<\/textarea[^>]*>)/i abcd</textarea> abcd </textarea>
+                    endTagLength = endTag.length;
+                    if (!isPlainTextElement(stackedTag) && stackedTag !== 'noscript') {
+                        text = text
+                            .replace(/<!\--([\s\S]*?)-->/g, '$1') // #7298
+                            .replace(/<!\[CDATA\[([\s\S]*?)]]>/g, '$1');
+                    }
+                    if (options.chars) {
+                        options.chars(text);
+                    }
+                    return ''
+                });
+                console.log('gsdrest', rest); // fdsafdas
+                debugger
+                index += html.length - rest.length;
             }
             if (html === last) {
                 /*if (!stack.length && options.warn) {
@@ -1198,7 +1251,7 @@
                     match.attrs.push(attr);
                     console.log('gsdmatch', match);
                 }
-                if (end) {
+                if (end) { // <div> <div/>
                     console.log('gsdend', end);
                     match.unarySlash = end[1];
                     advance(end[0].length);
@@ -1212,9 +1265,18 @@
             html = html.substring(n);
         }
         function handleStartTag (match) {
-            const tagName = match.tagName;
-            const unarySlash = match.unarySlash;
-            const unary = isUnaryTag(tagName) || !!unarySlash;
+            const tagName = match.tagName; // 标签名
+            const unarySlash = match.unarySlash; // 是不是单闭合
+            if (expectHTML) {
+                if (lastTag === 'p' && isNonPhrasingTag(tagName)) {
+                    // <p><div></div></p>  -> <p></p><div></div><p></p>
+                    parseEndTag(lastTag);
+                }
+                if (canBeLeftOpenTag(tagName) && lastTag === tagName) { // <li><li> -> <li></li>
+                    parseEndTag(tagName);
+                }
+            }
+            const unary = isUnaryTag(tagName) || !!unarySlash; // 判断是不是一元标签
             const l = match.attrs.length;
             const attrs = new Array(l);
             for (let i = 0; i < l; i++) {
@@ -1227,8 +1289,12 @@
                     name: args[1],
                     value: decodeAttr(value, shouldDecodeNewlines)
                 };
+                if (options.outputSourceRange) {
+                    attrs[i].start = args.start + args[0].match(/^\s*/).length;
+                    attrs[i].end = args.end;
+                }
             }
-            if (!unary) {
+            if (!unary) {// 如果不是一元标签，则放入栈里面，同时lasttag为本次的tagname
                 // TODO
                 stack.push({ tag: tagName, lowerCasedTag: tagName.toLowerCase(), attrs: attrs, start: match.start, end: match.end });
                 lastTag = tagName;
@@ -1973,15 +2039,6 @@
             staticRenderFns: code.staticRenderFns
         }
     });
-
-    const isUnaryTag = makeMap( // 是否是一元标签
-        'area,base,br,col,embed,frame,hr,img,input,isindex,keygen,' +
-        'link,meta,param,source,track,wbr'
-    );
-
-    const canBeLeftOpenTag = makeMap( // 以下标签如果只写了左侧的tag，浏览器会自动补全
-        'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
-    );
 
     function genData$1 (el) {
         console.log('gsdel', el);

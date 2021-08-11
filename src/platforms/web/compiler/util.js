@@ -16,7 +16,3 @@ export const isNonPhrasingTag = makeMap(
     'optgroup,option,param,rp,rt,source,style,summary,tbody,td,tfoot,th,thead,' +
     'title,tr,track'
 )
-
-export const canBeLeftOpenTag = makeMap(
-    'colgroup,dd,dt,li,options,p,td,tfoot,th,thead,tr,source'
-)
