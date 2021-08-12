@@ -26,7 +26,7 @@ export function initMixin (Vue) {
         initRender(vm) // _vnode, $vnode, $slots, $scopedSlots,_c(),$createElement()初始化
         callHook(vm, 'beforeCreate')
         initInjections(vm)
-        initState(vm)
+        initState(vm) // 初始化data,watch,method,props,computed
         initProvide(vm)
         callHook(vm, 'created')
         if (vm.$options.el) {

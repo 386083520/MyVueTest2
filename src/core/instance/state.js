@@ -1,6 +1,7 @@
 import { isPlainObject } from "../util/index";
 import { noop } from "../util/index";
 import { observe } from "../observer/index";
+import { nativeWatch } from "../util/index";
 
 const sharedPropertyDefinition = {
     enumerable: true,
@@ -20,10 +21,32 @@ export function proxy (target, sourceKey, key) {
 }
 
 export function initState (vm) {
+    vm._watchers = []
     const opts = vm.$options
+    if (opts.props) initProps(vm, opts.props)
+    if (opts.methods) initMethods(vm, opts.methods)
     if (opts.data) {
         initData(vm)
+    }else {
+        observe(vm._data = {}, true /* asRootData */)
     }
+    if (opts.computed) initComputed(vm, opts.computed)
+    if (opts.watch && opts.watch !== nativeWatch) {
+        initWatch(vm, opts.watch)
+    }
+}
+
+function initProps (vm, propsOptions) {
+
+}
+function initMethods (vm, propsOptions) {
+
+}
+function initComputed (vm, propsOptions) {
+
+}
+function initWatch (vm, propsOptions) {
+
 }
 
 function initData (vm) {
@@ -40,7 +63,7 @@ function initData (vm) {
         const key = keys[i]
         if (false) { // TODO
         }else {
-            proxy(vm, `_data`, key)
+            proxy(vm, `_data`, key) // this.aaa -> this._data.aaa
         }
     }
     observe(data, true /* asRootData */)
