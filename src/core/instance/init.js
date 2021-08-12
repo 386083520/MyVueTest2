@@ -6,11 +6,12 @@ import { initState } from "./state";
 
 export function initMixin (Vue) {
     Vue.prototype._init = function (options) {
+        debugger
         const vm = this
         if (options && options._isComponent) {
             initInternalComponent(vm, options)
         }else {
-            vm.$options = mergeOptions(options || {}, resolveConstructorOptions(vm.constructor), vm)
+            vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {}, vm)
             console.log('gsd', vm.$options)
         }
         initProxy(vm)

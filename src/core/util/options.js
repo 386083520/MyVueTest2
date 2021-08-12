@@ -10,14 +10,28 @@ export function resolveAsset (options, type, id, warnMissing) {
     const assets = options[type]
     if (hasOwn(assets, id)) return assets[id]
 }
-const defaultStrat = function (parentVal, childVal) {
+const defaultStrat = function (parentVal, childVal) {  // 默认的策略：childVal有值就用childVal，没值采用parentVal
     return childVal === undefined
         ? parentVal
         : childVal
 }
 
-function mergeHook (parentVal, childVal) {
+function mergeHook (parentVal, childVal) { // 给出传入生命周期函数的合并策略
     console.log('gsdmergeHook')
+    const res = childVal? parentVal? parentVal.concat(childVal): Array.isArray(childVal) ? childVal: [childVal]: parentVal
+    return res
+        ? dedupeHooks(res)
+        : res
+}
+
+function dedupeHooks (hooks) { // 对hooks的一个去重
+    const res = []
+    for (let i = 0; i < hooks.length; i++) {
+        if (res.indexOf(hooks[i]) === -1) {
+            res.push(hooks[i])
+        }
+    }
+    return res
 }
 
 

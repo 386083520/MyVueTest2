@@ -19,8 +19,16 @@
                 },
                 'abc': 'aabbcc'
             },
-            beforeCreate() {
-                console.log('gsdbeforeCreate')
+            beforeCreate: [
+                () => {
+                    console.log('gsdbeforeCreate')
+                },
+                () => {
+                    console.log('gsdbeforeCreate111')
+                }
+            ],
+            created() {
+                console.log('gsdCreate')
             }
         })
     </script>

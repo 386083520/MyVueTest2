@@ -32,7 +32,7 @@ export const no = (a, b, c) => false
 
 export const identity = (_) => _
 
-const hasOwnProperty = Object.prototype.hasOwnProperty
+const hasOwnProperty = Object.prototype.hasOwnProperty // 指示对象自身属性中是否具有指定的属性
 export function hasOwn (obj, key) {
     return hasOwnProperty.call(obj, key)
 }

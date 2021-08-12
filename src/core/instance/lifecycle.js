@@ -54,6 +54,7 @@ export function callHook (vm, hook) {
     const handlers = vm.$options[hook]
     console.log('gsdhandlers', handlers)
     const info = `${hook} hook`
+    console.log('gsd', handlers)
     if (handlers) {
         for (let i = 0, j = handlers.length; i < j; i++) {
             invokeWithErrorHandling(handlers[i], vm, null, vm, info)
