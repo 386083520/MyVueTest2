@@ -26,7 +26,7 @@ export function generate (ast, options) {
     }
 }
 
-export function genElement (el, state) {
+export function genElement (el, state) { // 这个是一个递归函数
     if (false) { // TODO
     }else {
         let code
@@ -65,8 +65,8 @@ export function genChildren (el, state, checkSkip, altGenElement, altGenNode) {
 }
 
 function genNode (node, state) {
-    if (node.type === 1) {
-
+    if (node.type === 1) { // 普通标签
+        return genElement(node, state)
     } else if (node.type === 3 && node.isComment) {
 
     } else {

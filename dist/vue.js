@@ -1808,6 +1808,8 @@
                         const name = element.slotTarget || '"default"'
                         ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element;
                     }
+                    currentParent.children.push(element);
+                    element.parent = currentParent;
                 }
             }
             element.children = element.children.filter(c => !c.slotScope); // 对children进行过滤，过滤掉包含slotScope
@@ -2216,7 +2218,7 @@
         }
     }
 
-    function genElement (el, state) {
+    function genElement (el, state) { // 这个是一个递归函数
         {
             let code;
             if (el.component) ;else {
@@ -2252,7 +2254,9 @@
     }
 
     function genNode (node, state) {
-        if (node.type === 1) ; else if (node.type === 3 && node.isComment) ; else {
+        if (node.type === 1) { // 普通标签
+            return genElement(node, state)
+        } else if (node.type === 3 && node.isComment) ; else {
             return genText(node)
         }
     }

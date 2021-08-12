@@ -127,6 +127,8 @@ export function parse (template, options) {
                     const name = element.slotTarget || '"default"'
                     ;(currentParent.scopedSlots || (currentParent.scopedSlots = {}))[name] = element
                 }
+                currentParent.children.push(element)
+                element.parent = currentParent
             }
         }
         element.children = element.children.filter(c => !c.slotScope) // 对children进行过滤，过滤掉包含slotScope
