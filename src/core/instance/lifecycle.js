@@ -37,17 +37,35 @@ export function lifecycleMixin (Vue) {
         }
         restoreActiveInstance()
     }
+    Vue.prototype.$destroy = function () {
+        callHook(vm, 'beforeDestroy')
+        callHook(vm, 'destroyed')
+    }
 }
 
 export function mountComponent (vm, el, hydrating) {
     vm.$el = el
+    callHook(vm, 'beforeMount')
     let updateComponent
     updateComponent = () => {
         vm._update(vm._render(), hydrating)
     }
     console.log('gsdmountComponent')
-    new Watcher(vm, updateComponent, noop, {}, true)
+    new Watcher(vm, updateComponent, noop, {
+        before () {
+            callHook(vm, 'beforeUpdate')
+        }
+    }, true)
+    callHook(vm, 'mounted')
     return vm
+}
+
+export function activateChildComponent (vm, direct) {
+    callHook(vm, 'activated')
+}
+
+export function deactivateChildComponent (vm, direct) {
+    callHook(vm, 'deactivated')
 }
 
 export function callHook (vm, hook) {

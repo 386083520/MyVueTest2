@@ -3,6 +3,8 @@ import { initProxy } from "./proxy"
 import { mergeOptions } from "../util/options"
 import { initLifecycle, callHook } from "./lifecycle";
 import { initState } from "./state";
+import { initEvents } from "./events";
+import { initInjections, initProvide } from "./inject";
 
 export function initMixin (Vue) {
     Vue.prototype._init = function (options) {
@@ -15,10 +17,13 @@ export function initMixin (Vue) {
             console.log('gsd', vm.$options)
         }
         initProxy(vm)
-        initLifecycle(vm)
+        initLifecycle(vm) // 初始化$parent,$root,$children,$refs
+        initEvents(vm)
         initRender(vm)
         callHook(vm, 'beforeCreate')
+        initInjections(vm)
         initState(vm)
+        initProvide(vm)
         callHook(vm, 'created')
         if (vm.$options.el) {
             console.log('gsd el', vm.$options.el)
