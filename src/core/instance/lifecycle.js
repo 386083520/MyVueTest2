@@ -15,12 +15,18 @@ export function setActiveInstance(vm) {
 export function initLifecycle (vm) {
     const options = vm.$options
     let parent = options.parent
-    if (parent && !options.abstract) {
+    if (parent && !options.abstract) { //定位到第一个非抽象的parent
+        while (parent.$options.abstract && parent.$parent) {
+            parent = parent.$parent
+        }
         parent.$children.push(vm)
     }
     console.log('gsdparent', parent)
-    vm.$parent = parent
+    vm.$parent = parent // 指定vm的$parent
+    vm.$root = parent ? parent.$root : vm // 指定vm的$root
     vm.$children = []
+    vm.$refs = {}
+    // TODO
 }
 
 export function lifecycleMixin (Vue) {

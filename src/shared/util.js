@@ -1,5 +1,7 @@
 const _toString = Object.prototype.toString
 
+export const emptyObject = Object.freeze({}) // object.freeze() 方法可以冻结一个对象
+
 export function noop (a, b, c) {
 }
 

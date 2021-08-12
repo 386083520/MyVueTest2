@@ -8,18 +8,22 @@ import { initInjections, initProvide } from "./inject";
 
 export function initMixin (Vue) {
     Vue.prototype._init = function (options) {
-        debugger
         const vm = this
-        if (options && options._isComponent) {
+        if (options && options._isComponent) { // 合并配置
             initInternalComponent(vm, options)
         }else {
             vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {}, vm)
             console.log('gsd', vm.$options)
         }
-        initProxy(vm)
+        if (true) { // TODO
+            initProxy(vm) // 对vm做代理
+        }else {
+            vm._renderProxy = vm
+        }
+        vm._self = vm // 把本身挂载到_self上
         initLifecycle(vm) // 初始化$parent,$root,$children,$refs
-        initEvents(vm)
-        initRender(vm)
+        initEvents(vm) //初始化本组件的监听事件对象和Hook事件监听，以及更新父组件的监听器
+        initRender(vm) // _vnode, $vnode, $slots, $scopedSlots,_c(),$createElement()初始化
         callHook(vm, 'beforeCreate')
         initInjections(vm)
         initState(vm)
