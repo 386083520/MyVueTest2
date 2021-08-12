@@ -6,6 +6,8 @@
 
     const _toString = Object.prototype.toString;
 
+    const emptyObject = Object.freeze({}); // object.freeze() 方法可以冻结一个对象
+
     function noop (a, b, c) {
     }
 
@@ -80,6 +82,15 @@
         return to
     }
 
+    function remove (arr, item) {
+        if (arr.length) {
+            const index = arr.indexOf(item);
+            if (index > -1) {
+                return arr.splice(index, 1)
+            }
+        }
+    }
+
     const unicodeRegExp = /a-zA-Z\u00B7\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u037D\u037F-\u1FFF\u200C-\u200D\u203F-\u2040\u2070-\u218F\u2C00-\u2FEF\u3001-\uD7FF\uF900-\uFDCF\uFDF0-\uFFFD/;
 
     function def (obj, key, val, enumerable) {
@@ -95,6 +106,7 @@
         isReservedTag: no,
         warnHandler: null,
         parsePlatformTagName: identity,
+        performance: false,
         optionMergeStrategies: Object.create(null),
         silent: false // 是否给出提示性的警告
     });
@@ -176,6 +188,8 @@
     const UA = inBrowser && window.navigator.userAgent.toLowerCase();
     const isIE = UA && /msie|trident/.test(UA);
     const isEdge = UA && UA.indexOf('edge/') > 0;
+
+    const nativeWatch = ({}).watch; // firefox 浏览器自带的有watch方法
 
     function isNative (Ctor) {
         return typeof Ctor === 'function' && /native code/.test(Ctor.toString())
@@ -406,6 +420,9 @@
                 const value = this.get();
             }
         }
+        teardown () {
+            console.log('gsdteardown'); // TODO
+        }
     }
 
     function invokeWithErrorHandling (handler, context, args, vm, info) {
@@ -427,12 +444,18 @@
     function initLifecycle (vm) {
         const options = vm.$options;
         let parent = options.parent;
-        if (parent && !options.abstract) {
+        if (parent && !options.abstract) { //定位到第一个非抽象的parent
+            while (parent.$options.abstract && parent.$parent) {
+                parent = parent.$parent;
+            }
             parent.$children.push(vm);
         }
         console.log('gsdparent', parent);
-        vm.$parent = parent;
+        vm.$parent = parent; // 指定vm的$parent
+        vm.$root = parent ? parent.$root : vm; // 指定vm的$root
         vm.$children = [];
+        vm.$refs = {};
+        // TODO
     }
 
     function lifecycleMixin (Vue) {
@@ -449,16 +472,49 @@
             }
             restoreActiveInstance();
         };
+        Vue.prototype.$destroy = function () {
+            const vm = this;
+            if (vm._isBeingDestroyed) { // 当前vm正在走$destroy的逻辑
+                return
+            }
+            // 啥都没做，只是提醒要销毁了
+            callHook(vm, 'beforeDestroy');
+            vm._isBeingDestroyed = true;
+            const parent = vm.$parent;
+            if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) { // 如果parent存在，且没有在销毁中，且当前vm不是abstract
+                remove(parent.$children, vm); // 我们把vm从parent里面移除掉
+            }
+            if (vm._watcher) ;
+            let i = vm._watchers.length;
+            while (i--) {
+                //TODO _watchers移除
+            }
+            vm._isDestroyed = true;
+            vm.__patch__(vm._vnode, null); // 把子组件都做销毁
+            // 接触关联关系；销毁子组件
+            callHook(vm, 'destroyed');
+            vm.$off();
+            if (vm.$el) ;
+            if (vm.$vnode) ;
+        };
     }
 
     function mountComponent (vm, el, hydrating) {
         vm.$el = el;
+        // 将el转化为element;得到template;得到render
+        callHook(vm, 'beforeMount');
         let updateComponent;
         updateComponent = () => {
             vm._update(vm._render(), hydrating);
         };
         console.log('gsdmountComponent');
-        new Watcher(vm, updateComponent, noop, {}, true);
+        new Watcher(vm, updateComponent, noop, {
+            before () {
+                callHook(vm, 'beforeUpdate');
+            }
+        }, true);
+        // watcher；生成虚拟dom;页面的渲染
+        callHook(vm, 'mounted');
         return vm
     }
 
@@ -658,9 +714,22 @@
         target._s = toString;
     }
 
+    function resolveSlots (children, context) {
+
+    }
+
     function initRender (vm) {
+        vm._vnode = null; // 子树的根 _vnode是它就是组件的vnode对象
+        vm._staticTrees = null; // v-once的缓存tree
+        const options = vm.$options;
+        const parentVnode = vm.$vnode = options._parentVnode; // $vnode的指向是子组件在父节点的占位时的节点
+        var renderContext = parentVnode && parentVnode.context;
+        vm.$slots = resolveSlots(options._renderChildren);
+        vm.$scopedSlots = emptyObject;
         vm._c = (a, b, c, d) => createElement(vm, a, b, c, d, false);
         vm.$createElement = (a, b, c, d) => createElement(vm, a, b, c, d, true);
+        const parentData = parentVnode && parentVnode.data;
+        //TODO 给vm的$attrs和$listeners添加setter和getter函数,以及对属性和事件的相关的监听处理
     }
 
     function renderMixin (Vue) {
@@ -768,10 +837,32 @@
     }
 
     function initState (vm) {
+        vm._watchers = [];
         const opts = vm.$options;
+        if (opts.props) initProps(vm, opts.props);
+        if (opts.methods) initMethods(vm, opts.methods);
         if (opts.data) {
             initData(vm);
+        }else {
+            observe(vm._data = {});
         }
+        if (opts.computed) initComputed(vm, opts.computed);
+        if (opts.watch && opts.watch !== nativeWatch) {
+            initWatch(vm, opts.watch);
+        }
+    }
+
+    function initProps (vm, propsOptions) {
+
+    }
+    function initMethods (vm, propsOptions) {
+
+    }
+    function initComputed (vm, propsOptions) {
+
+    }
+    function initWatch (vm, propsOptions) {
+
     }
 
     function initData (vm) {
@@ -787,7 +878,7 @@
         while (i--) {
             const key = keys[i];
             {
-                proxy(vm, `_data`, key);
+                proxy(vm, `_data`, key); // this.aaa -> this._data.aaa
             }
         }
         observe(data);
@@ -796,22 +887,40 @@
     function getData (data, vm) {
     }
 
+    function eventsMixin (Vue) {
+        Vue.prototype.$off = function (event, fn) {
+        };
+    }
+
+    let mark;
+    { // TODO
+        const perf = inBrowser && window.performance;
+        if (perf && perf.mark) {
+            mark = tag => perf.mark(tag);
+        }
+    }
+
     function initMixin (Vue) {
         Vue.prototype._init = function (options) {
-            debugger
             const vm = this;
-            if (options && options._isComponent) {
+            if (options && options._isComponent) { // 合并配置
                 initInternalComponent(vm, options);
             }else {
                 vm.$options = mergeOptions(resolveConstructorOptions(vm.constructor), options || {});
                 console.log('gsd', vm.$options);
             }
-            initProxy(vm);
-            initLifecycle(vm);
-            initRender(vm);
+            { // TODO
+                initProxy(vm); // 对vm做代理
+            }
+            vm._self = vm; // 把本身挂载到_self上
+            initLifecycle(vm); // 初始化$parent,$root,$children,$refs
+            initRender(vm); // _vnode, $vnode, $slots, $scopedSlots,_c(),$createElement()初始化
             callHook(vm, 'beforeCreate');
-            initState(vm);
+            initState(vm); // 初始化data,watch,method,props,computed
             callHook(vm, 'created');
+            if (config.performance && mark) {// TODO
+                mark(endTag);
+            }
             if (vm.$options.el) {
                 console.log('gsd el', vm.$options.el);
                 vm.$mount(vm.$options.el);
@@ -842,6 +951,7 @@
         this._init(options);
     }
     initMixin(Vue);
+    eventsMixin(Vue);
     lifecycleMixin(Vue);
     renderMixin(Vue);
 
@@ -976,7 +1086,7 @@
             }
         }
         return function patch (oldVnode, vnode, hydrating, removeOnly) {
-            if (isUndef(vnode)) {
+            if (isUndef(vnode)) { // 在$destroy调用的时候会走这个逻辑
                 return
             }
             const insertedVnodeQueue = [];  // insertedVnodeQueue 在一次 patch 过程中维护的插入的 vnode 的队列
@@ -1230,7 +1340,7 @@
     const doctype =/^<!DOCTYPE [^>]+>/i;
     const ncname = `[a-zA-Z_][\\-\\.0-9_a-zA-Z${unicodeRegExp.source}]*`;
     const qnameCapture = `((?:${ncname}\\:)?${ncname})`;
-    const endTag = new RegExp(`^<\\/${qnameCapture}[^>]*>`);
+    const endTag$1 = new RegExp(`^<\\/${qnameCapture}[^>]*>`);
     const startTagOpen = new RegExp(`^<${qnameCapture}`);
     const startTagClose = /^\s*(\/?)>/;
     const attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/;
@@ -1294,7 +1404,7 @@
                         advance(doctypeMatch[0].length);
                         continue
                     } // 匹配到<!DOCTYPE...后的逻辑处理
-                    const endTagMatch = html.match(endTag); // 匹配结束标签 />
+                    const endTagMatch = html.match(endTag$1); // 匹配结束标签 />
                     if (endTagMatch) { // 如果匹配到结束标签做的逻辑
                         console.log('gsdendTagMatch', endTagMatch);
                         const curIndex = index;
@@ -1316,7 +1426,7 @@
                 if (textEnd >= 0) { // 检索的<符号的位置>=0
                     rest = html.slice(textEnd);  // 从textEnd位置截取获得rest
                     while ( // 如果<符号开头的不是endTag，startTagOpen，comment，conditionalComment
-                        !endTag.test(rest) &&
+                        !endTag$1.test(rest) &&
                         !startTagOpen.test(rest) &&
                         !comment.test(rest) &&
                         !conditionalComment.test(rest)) {

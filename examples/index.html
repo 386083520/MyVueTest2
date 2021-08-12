@@ -7,28 +7,13 @@
 </head>
 <body>
     <div class="container" id="app">
-        <div>abcde</div>
     </div>
     <script>
         let vm = new Vue({
             el: '#app',
-            template: '<div>aaa</div>',
+            template: '<div>{{abc}}</div>',
             data: {
-                'aaa': {
-                    'bbb': 'aaabbb'
-                },
                 'abc': 'aabbcc'
-            },
-            beforeCreate: [
-                () => {
-                    console.log('gsdbeforeCreate')
-                },
-                () => {
-                    console.log('gsdbeforeCreate111')
-                }
-            ],
-            created() {
-                console.log('gsdCreate')
             }
         })
     </script>
