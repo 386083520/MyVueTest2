@@ -41,6 +41,7 @@ export function getBindingAttr (el, name, getStatic) {
 }
 
 export function addAttr (el, name, value, range, dynamic) {
+    // attrs后面会在生产render函数的时候用到
     const attrs = dynamic? (el.dynamicAttrs || (el.dynamicAttrs = [])): (el.attrs || (el.attrs = []))
     attrs.push(rangeSetItem({ name, value, dynamic }, range))
     el.plain = false

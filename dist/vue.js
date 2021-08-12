@@ -1632,6 +1632,7 @@
     }
 
     function addAttr (el, name, value, range, dynamic) {
+        // attrs后面会在生产render函数的时候用到
         const attrs = dynamic? (el.dynamicAttrs || (el.dynamicAttrs = [])): (el.attrs || (el.attrs = []));
         attrs.push(rangeSetItem({ name, value, dynamic }, range));
         el.plain = false;
@@ -1695,6 +1696,8 @@
 
     //import he from 'he'
 
+    const dirRE = /^v-|^@|^:|^\.|^#/; //一些常用指令 // TODO
+
     const invalidAttributeRE = /[\s"'<>\/=]/;
     const lineBreakRE = /[\r\n]/; // 回车换行
     const whitespaceRE = /\s+/g; // 全局匹配空格
@@ -1735,6 +1738,7 @@
         for (let i = 0; i < transforms.length; i++) { // 根据transforms处理element,在closeElement里面调用的
             element = transforms[i](element, options) || element;
         }
+        processAttrs(element);
         return element
     }
     function isForbiddenTag (el) { // 是否是一些禁止的tag
@@ -2157,6 +2161,18 @@
         }
     }
 
+    function processAttrs(el) {
+        const list = el.attrsList;
+        let i,l, name, rawName, value;
+        for (i = 0, l = list.length; i < l; i++) {
+            name = rawName = list[i].name;
+            value = list[i].value;
+            if (dirRE.test(name)) ; else {// 常见的attrs
+                addAttr(el, name, JSON.stringify(value), list[i]);
+            }
+        }
+    }
+
     function processIfConditions (el, parent) { // elseif 和else的时候触发
         const prev = findPrevElement(parent.children);
         if (prev && prev.if) {
@@ -2236,8 +2252,11 @@
 
     function genData (el, state) {
         let data = '{';
-        for (let i = 0; i < state.dataGenFns.length; i++) {
+        for (let i = 0; i < state.dataGenFns.length; i++) { // dataGenFns是从options里面拿到的很多的genData的一个数组
             data += state.dataGenFns[i](el);
+        }
+        if (el.attrs) { // 对attributes的处理
+            data += `attrs:${genProps(el.attrs)},`;
         }
         data = data.replace(/,$/, '') + '}';
         console.log('gsddata', data);
@@ -2268,6 +2287,21 @@
 
     function transformSpecialNewlines (text) {
         return text
+    }
+
+    function genProps (props) {
+        let staticProps = ``;
+        for (let i = 0; i < props.length; i++) {
+            const prop = props[i];
+            const value = transformSpecialNewlines(prop.value);
+            if (prop.dynamic) ;else {
+                staticProps += `"${prop.name}":${value},`;
+            }
+        }
+        staticProps = `{${staticProps.slice(0, -1)}}`;
+        {
+            return staticProps
+        }
     }
 
     const createCompiler = createCompilerCreator(function baseCompile (template, options) {

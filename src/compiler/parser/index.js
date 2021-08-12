@@ -7,6 +7,8 @@ import {no, cached} from "../../shared/util";
 import { isIE, isEdge, isServerRendering } from "../../core/util/index";
 import { getAndRemoveAttr, getBindingAttr, addAttr, getRawBindingAttr } from "../helpers";
 
+export const dirRE = /^v-|^@|^:|^\.|^#/ //一些常用指令 // TODO
+
 const invalidAttributeRE = /[\s"'<>\/=]/
 const lineBreakRE = /[\r\n]/ // 回车换行
 const whitespaceRE = /\s+/g // 全局匹配空格
@@ -499,7 +501,17 @@ function processComponent(el) {
 }
 
 function processAttrs(el) {
-
+    const list = el.attrsList
+    let i,l, name, rawName, value
+    for (i = 0, l = list.length; i < l; i++) {
+        name = rawName = list[i].name
+        value = list[i].value
+        if (dirRE.test(name)) {// 对指令的处理
+            // TODO
+        } else {// 常见的attrs
+            addAttr(el, name, JSON.stringify(value), list[i])
+        }
+    }
 }
 
 function processIfConditions (el, parent) { // elseif 和else的时候触发

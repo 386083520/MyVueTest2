@@ -47,8 +47,11 @@ export function genElement (el, state) { // 这个是一个递归函数
 
 export function genData (el, state) {
     let data = '{'
-    for (let i = 0; i < state.dataGenFns.length; i++) {
+    for (let i = 0; i < state.dataGenFns.length; i++) { // dataGenFns是从options里面拿到的很多的genData的一个数组
         data += state.dataGenFns[i](el)
+    }
+    if (el.attrs) { // 对attributes的处理
+        data += `attrs:${genProps(el.attrs)},`
     }
     data = data.replace(/,$/, '') + '}'
     console.log('gsddata', data)
@@ -81,4 +84,24 @@ function genText (text) {
 
 function transformSpecialNewlines (text) {
     return text
+}
+
+function genProps (props) {
+    let staticProps = ``
+    let dynamicProps = ``
+    for (let i = 0; i < props.length; i++) {
+        const prop = props[i]
+        const value = transformSpecialNewlines(prop.value)
+        if (prop.dynamic) {
+
+        }else {
+            staticProps += `"${prop.name}":${value},`
+        }
+    }
+    staticProps = `{${staticProps.slice(0, -1)}}`
+    if (dynamicProps) {
+        // TODO
+    }else {
+        return staticProps
+    }
 }
