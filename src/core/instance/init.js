@@ -5,6 +5,8 @@ import { initLifecycle, callHook } from "./lifecycle";
 import { initState } from "./state";
 import { initEvents } from "./events";
 import { initInjections, initProvide } from "./inject";
+import config from "../config";
+import { mark } from "../util/perf";
 
 export function initMixin (Vue) {
     Vue.prototype._init = function (options) {
@@ -29,6 +31,9 @@ export function initMixin (Vue) {
         initState(vm) // 初始化data,watch,method,props,computed
         initProvide(vm)
         callHook(vm, 'created')
+        if (config.performance && mark) {// TODO
+            mark(endTag)
+        }
         if (vm.$options.el) {
             console.log('gsd el', vm.$options.el)
             vm.$mount(vm.$options.el)

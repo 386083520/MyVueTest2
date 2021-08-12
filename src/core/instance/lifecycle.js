@@ -51,6 +51,7 @@ export function lifecycleMixin (Vue) {
 
 export function mountComponent (vm, el, hydrating) {
     vm.$el = el
+    // 将el转化为element;得到template;得到render
     callHook(vm, 'beforeMount')
     let updateComponent
     updateComponent = () => {
@@ -62,6 +63,7 @@ export function mountComponent (vm, el, hydrating) {
             callHook(vm, 'beforeUpdate')
         }
     }, true)
+    // watcher；生成虚拟dom;页面的渲染
     callHook(vm, 'mounted')
     return vm
 }
