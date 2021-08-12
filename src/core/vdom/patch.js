@@ -130,7 +130,7 @@ export function createPatchFunction (backend) {
         }
     }
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
-        if (isUndef(vnode)) {
+        if (isUndef(vnode)) { // 在$destroy调用的时候会走这个逻辑
             if (isDef(oldVnode)) {
                 invokeDestroyHook(oldVnode)
             }

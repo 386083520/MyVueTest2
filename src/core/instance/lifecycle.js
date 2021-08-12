@@ -1,5 +1,5 @@
 import Watcher from '../observer/watcher'
-import { noop } from "../util/index"
+import { noop, remove } from "../util/index"
 import {invokeWithErrorHandling} from "../util/error";
 
 export let activeInstance = null
@@ -44,8 +44,35 @@ export function lifecycleMixin (Vue) {
         restoreActiveInstance()
     }
     Vue.prototype.$destroy = function () {
+        const vm = this
+        if (vm._isBeingDestroyed) { // 当前vm正在走$destroy的逻辑
+            return
+        }
+        // 啥都没做，只是提醒要销毁了
         callHook(vm, 'beforeDestroy')
+        vm._isBeingDestroyed = true
+        const parent = vm.$parent
+        if (parent && !parent._isBeingDestroyed && !vm.$options.abstract) { // 如果parent存在，且没有在销毁中，且当前vm不是abstract
+            remove(parent.$children, vm) // 我们把vm从parent里面移除掉
+        }
+        if (vm._watcher) { // 移除掉数据监听
+            //TODO
+        }
+        let i = vm._watchers.length
+        while (i--) {
+            //TODO _watchers移除
+        }
+        vm._isDestroyed = true
+        vm.__patch__(vm._vnode, null) // 把子组件都做销毁
+        // 接触关联关系；销毁子组件
         callHook(vm, 'destroyed')
+        vm.$off()
+        if (vm.$el) {
+            // TODO
+        }
+        if (vm.$vnode) {
+            // TODO
+        }
     }
 }
 

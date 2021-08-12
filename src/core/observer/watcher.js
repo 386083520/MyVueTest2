@@ -53,4 +53,7 @@ export default class Watcher {
             const value = this.get()
         }
     }
+    teardown () {
+        console.log('gsdteardown') // TODO
+    }
 }

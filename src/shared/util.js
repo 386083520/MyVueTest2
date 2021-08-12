@@ -76,5 +76,14 @@ export function extend (to, _from) { // 合并，以from的优先级更高
     return to
 }
 
+export function remove (arr, item) {
+    if (arr.length) {
+        const index = arr.indexOf(item)
+        if (index > -1) {
+            return arr.splice(index, 1)
+        }
+    }
+}
+
 
 
