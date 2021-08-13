@@ -63,7 +63,7 @@ function initData (vm) {
         const key = keys[i]
         if (false) { // TODO
         }else {
-            proxy(vm, `_data`, key) // this.aaa -> this._data.aaa
+            proxy(vm, `_data`, key) // this._data.aaa -> this.aaa
         }
     }
     observe(data, true /* asRootData */)

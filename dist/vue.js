@@ -344,7 +344,12 @@
     let waiting = false;
     const queue = [];
     let has = {};
+    let flushing = false;
     let index = 0;
+    function resetSchedulerState () {
+        waiting = flushing = false;
+    }
+
     function flushSchedulerQueue () {
         console.log('gsdflushSchedulerQueue');
         let watcher, id;
@@ -354,16 +359,18 @@
             has[id] = null;
             watcher.run();
         }
+        resetSchedulerState(); // 重置Scheduler里面一些状态
     }
 
     function queueWatcher (watcher) {
         const id = watcher.id;
+        console.log('gsdhas', has[id]);
         if (has[id] == null) {
             has[id] = true;
-            {
+            if (!flushing) {
                 queue.push(watcher);
             }
-            if (!waiting) {
+            if (!waiting) { // nextTick正在执行的标志位
                 waiting = true;
                 console.log('gsdnextTick');
                 nextTick(flushSchedulerQueue);
@@ -895,7 +902,7 @@
         while (i--) {
             const key = keys[i];
             {
-                proxy(vm, `_data`, key); // this.aaa -> this._data.aaa
+                proxy(vm, `_data`, key); // this._data.aaa -> this.aaa
             }
         }
         observe(data);
