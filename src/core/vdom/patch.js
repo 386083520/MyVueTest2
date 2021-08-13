@@ -3,12 +3,25 @@ import VNode from "./VNode"
 import { SSR_ATTR } from "../../shared/constants";
 import { isTrue } from '../util/index'
 
+export const emptyNode = new VNode('', {}, [])
+const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
+
 function sameVnode (a, b) {
     return false // TODO
 }
 
 export function createPatchFunction (backend) {
+    let i,j
+    const cbs = {}
     const { modules, nodeOps } = backend
+    for (i = 0; i < hooks.length; ++i) {
+        cbs[hooks[i]] = []
+        for (j = 0; j < modules.length; ++j) {
+            if (isDef(modules[j][hooks[i]])) {
+                cbs[hooks[i]].push(modules[j][hooks[i]])
+            }
+        }
+    }
     function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
         if (isDef(vnode.elm) && isDef(ownerArray)) {
             // TODO
@@ -32,7 +45,7 @@ export function createPatchFunction (backend) {
                 console.log('gsdelm', vnode.elm)
                 createChildren(vnode, children, insertedVnodeQueue)
                 if (isDef(data)) {
-                    // TODO
+                    invokeCreateHooks(vnode, insertedVnodeQueue)
                 }
                 insert(parentElm, vnode.elm, refElm)
             }
@@ -173,5 +186,10 @@ export function createPatchFunction (backend) {
         }
         console.log('gsdpatch', vnode.elm)
         return vnode.elm
+    }
+    function invokeCreateHooks (vnode, insertedVnodeQueue) {
+        for (let i = 0; i < cbs.create.length; ++i) {
+            cbs.create[i](emptyNode, vnode)
+        }
     }
 }

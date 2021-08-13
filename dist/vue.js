@@ -652,6 +652,23 @@
         )
     };
 
+    function genClassForVnode (vnode) {
+        let data = vnode.data;
+         // TODO
+        return renderClass(data.staticClass, data.class)
+    }
+
+    function renderClass (staticClass, dynamicClass) {
+        if (isDef(staticClass) || isDef(dynamicClass)) {
+            return concat(staticClass) // TODO
+        }
+        return ''
+    }
+
+    function concat (a, b) {
+        return a ? b ? (a + ' ' + b) : a : (b || '')
+    }
+
     function query (el) { // 根据传入的值找到对应的元素
         if (typeof el === 'string') {
             const selected = document.querySelector(el);
@@ -986,12 +1003,25 @@
 
     initGlobalAPI(Vue);
 
+    const emptyNode = new VNode('', {}, []);
+    const hooks = ['create', 'activate', 'update', 'remove', 'destroy'];
+
     function sameVnode (a, b) {
         return false // TODO
     }
 
     function createPatchFunction (backend) {
+        let i,j;
+        const cbs = {};
         const { modules, nodeOps } = backend;
+        for (i = 0; i < hooks.length; ++i) {
+            cbs[hooks[i]] = [];
+            for (j = 0; j < modules.length; ++j) {
+                if (isDef(modules[j][hooks[i]])) {
+                    cbs[hooks[i]].push(modules[j][hooks[i]]);
+                }
+            }
+        }
         function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
             if (isDef(vnode.elm) && isDef(ownerArray)) ;
             vnode.isRootInsert = !nested;
@@ -1006,6 +1036,9 @@
                 {
                     console.log('gsdelm', vnode.elm);
                     createChildren(vnode, children, insertedVnodeQueue);
+                    if (isDef(data)) {
+                        invokeCreateHooks(vnode);
+                    }
                     insert(parentElm, vnode.elm, refElm);
                 }
             } else {
@@ -1117,6 +1150,11 @@
             console.log('gsdpatch', vnode.elm);
             return vnode.elm
         }
+        function invokeCreateHooks (vnode, insertedVnodeQueue) {
+            for (let i = 0; i < cbs.create.length; ++i) {
+                cbs.create[i](emptyNode, vnode);
+            }
+        }
     }
 
     function createElement$1 (tagName, vnode) {
@@ -1164,7 +1202,32 @@
         removeChild: removeChild
     });
 
-    const modules = '';
+    function updateClass (oldVnode, vnode) {
+        console.log('gsdupdateClass');
+        const el = vnode.elm;
+        const data = vnode.data;
+        const oldData = oldVnode.data;
+        // TODO
+        let cls = genClassForVnode(vnode);
+        if (cls !== el._prevClass) {
+            el.setAttribute('class', cls);
+            el._prevClass = cls;
+        }
+    }
+
+
+    var klass = {
+        create: updateClass,
+        update: updateClass
+    };
+
+    var platformModules = [
+        klass
+    ];
+
+    var baseModules = [];
+
+    const modules = platformModules.concat(baseModules);
     const patch = createPatchFunction({nodeOps, modules});
 
     Vue.prototype.__patch__ = patch;
@@ -2338,13 +2401,13 @@
         }
     }
 
-    var klass = {
+    var klass$1 = {
         transformNode,
         genData: genData$1
     };
 
     var modules$1 = [
-        klass
+        klass$1
     ];
 
     var directives = {
