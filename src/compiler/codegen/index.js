@@ -27,7 +27,12 @@ export function generate (ast, options) {
 }
 
 export function genElement (el, state) { // 这个是一个递归函数
-    if (false) { // TODO
+    if (el.parent) {
+
+    }
+    if (el.staticRoot && !el.staticProcessed) {
+        return genStatic(el, state)
+    }else if (false) { // TODO
     }else {
         let code
         if (el.component) {

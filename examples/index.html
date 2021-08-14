@@ -7,13 +7,25 @@
 </head>
 <body>
     <div class="container" id="app">
-        <div class="detail">{{abc}}</div>
+        <!--[(isShow)?_c('div',[_v("6666")]):_e()]-->
+
+        <!--(function anonymous(
+        ) {
+        with(this){return _m(0)}
+        })-->
+
+        <!--anonymous(
+        ) {
+        with(this){return _c('div',{staticClass:"container",attrs:{"id":"app"}},[_c('div',[_v("6666")])])}
+        }-->
+        <div>6666</div>
     </div>
     <script>
         let vm = new Vue({
             el: '#app',
             data: {
-                'abc': 'aabbcc'
+                'abc': 'aabbcc',
+                'isShow': false
             }
         })
     </script>
