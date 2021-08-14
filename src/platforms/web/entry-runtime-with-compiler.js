@@ -59,6 +59,8 @@ Vue.prototype.$mount = function (el, hydrating) {
             }, this)
             console.log('gsdrender2', render)
             options.render = render
+            console.log('gsdstaticRenderFns2', staticRenderFns)
+            options.staticRenderFns = staticRenderFns // 静态element处理的时候对应的render函数数组
         }
     }
     mount.call(this, el, hydrating)

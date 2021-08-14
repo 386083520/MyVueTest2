@@ -735,9 +735,40 @@
         return vnode
     }
 
+    function renderStatic (index, isInFor) {
+        console.log('gsdrenderStatic');
+        const cached = this._staticTrees || (this._staticTrees = []);
+        let tree = cached[index];
+        if (tree && !isInFor) {
+            return tree
+        }
+        console.log('gsdstaticRenderFns', this.$options.staticRenderFns[index]);
+        tree = cached[index] = this.$options.staticRenderFns[index].call(
+            this._renderProxy,
+            null,
+            this
+        );
+        markStatic(tree, `__static__${index}`, false);
+        console.log('gsdtree', tree);
+        return tree
+    }
+
+    function markStatic (tree, key, isOnce) {
+        if (Array.isArray(tree)) ; else {
+            markStaticNode(tree, key, isOnce);
+        }
+    }
+
+    function markStaticNode (node, key, isOnce) {
+        node.isStatic = true;
+        node.key = key;
+        node.isOnce = isOnce;
+    }
+
     function installRenderHelpers (target) {
         target._v = createTextVNode;
         target._s = toString;
+        target._m = renderStatic;
     }
 
     function resolveSlots (children, context) {
@@ -1380,7 +1411,9 @@
             const res = {};
             const fnGenErrors = [];
             res.render = createFunction(compiled.render, fnGenErrors);
-            res.staticRenderFns = {}; // TODO
+            res.staticRenderFns = compiled.staticRenderFns.map(code => {
+                return createFunction(code, fnGenErrors)
+            });
             { // TODO
                 if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
                     warn$1(
@@ -2461,16 +2494,16 @@
     // 好处：1，在每次re-render的过程中不需要重新生成node；2，patching的过程中可以完全的跳过
     function optimize (root, options) {
         if (!root) return
-        markStatic(root);
+        markStatic$1(root);
         markStaticRoots(root, false);
     }
 
-    function markStatic(node) {
+    function markStatic$1(node) {
         node.static = isStatic(node);
         if (node.type === 1) {
             for (let i = 0, l = node.children.length; i < l; i++) {
                 const child = node.children[i];
-                markStatic(child);
+                markStatic$1(child);
                 if (!child.static) {
                     node.static = false;
                 }
@@ -2635,6 +2668,8 @@
                 }, this);
                 console.log('gsdrender2', render);
                 options.render = render;
+                console.log('gsdstaticRenderFns2', staticRenderFns);
+                options.staticRenderFns = staticRenderFns; // 静态element处理的时候对应的render函数数组
             }
         }
         mount.call(this, el, hydrating);

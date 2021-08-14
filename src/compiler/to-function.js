@@ -67,7 +67,9 @@ export function createCompileToFunctionFn (compile) {
         const res = {}
         const fnGenErrors = []
         res.render = createFunction(compiled.render, fnGenErrors)
-        res.staticRenderFns = {} // TODO
+        res.staticRenderFns = compiled.staticRenderFns.map(code => {
+            return createFunction(code, fnGenErrors)
+        })
         if (true) { // TODO
             if ((!compiled.errors || !compiled.errors.length) && fnGenErrors.length) {
                 warn(
