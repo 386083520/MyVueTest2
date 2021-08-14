@@ -2392,6 +2392,17 @@
         }
     }
 
+    function genStatic (el, state) {
+        el.staticProcessed = true; // 正在执行genStatic函数
+        state.staticRenderFns.push(`with(this){return ${genElement(el, state)}}`);
+        // TODO
+        return `_m(
+      ${
+        state.staticRenderFns.length - 1
+      }
+    )`
+    }
+
     function genData (el, state) {
         let data = '{';
         for (let i = 0; i < state.dataGenFns.length; i++) { // dataGenFns是从options里面拿到的很多的genData的一个数组
