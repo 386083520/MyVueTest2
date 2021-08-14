@@ -8,11 +8,38 @@ export function optimize (root, options) {
 
 function markStatic(node) {
     node.static = isStatic(node)
+    if (node.type === 1) {
+        if (false) { // TODO
+        }
+        for (let i = 0, l = node.children.length; i < l; i++) {
+            const child = node.children[i]
+            markStatic(child)
+            if (!child.static) {
+                node.static = false
+            }
+        }
+        if (node.ifConditions) {
+            // TODO
+        }
+    }
 }
 
 function markStaticRoots (node, isInFor) {
     if (node.type === 1) {
-
+        if (node.static && node.children.length && !( // 满足staticRoot的条件：是static，并且有children，children的类型不能说纯文本
+            node.children.length === 1 &&
+            node.children[0].type === 3
+        )) {
+            node.staticRoot = true
+            return
+        }else {
+            node.staticRoot = false
+        }
+        if (node.children) {
+            for (let i = 0, l = node.children.length; i < l; i++) {
+                markStaticRoots(node.children[i], isInFor || !!node.for)
+            }
+        }
     }
 }
 
@@ -23,5 +50,7 @@ function isStatic (node) {
     if (node.type === 3) { // text直接返回true
         return true
     }
-    return !!(false)
+    return !!( // TODO
+        true
+    )
 }
