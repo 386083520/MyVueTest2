@@ -30,3 +30,7 @@ export function insertBefore (parentNode, newNode, referenceNode) {
 export function removeChild (node, child) { // 移除node指定的子元素
     node.removeChild(child)
 }
+
+export function setTextContent (node, text) { // 设置node的文本内容
+    node.textContent = text
+}

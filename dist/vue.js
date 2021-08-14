@@ -1113,6 +1113,49 @@
             if (isDef(vnode.data.pendingInsert)) ;
             vnode.elm = vnode.componentInstance.$el;
         }
+        function patchVnode (oldVnode, vnode, insertedVnodeQueue, ownerArray, index, removeOnly) {
+            if (oldVnode === vnode) {
+                return
+            }
+            debugger
+            if (isDef(vnode.elm) && isDef(ownerArray)) { // 在做循环调用的时候会到这个逻辑
+                // TODO
+                console.log('gsdownerArray');
+            }
+            const elm = vnode.elm = oldVnode.elm;
+            if (isTrue(oldVnode.isAsyncPlaceholder)) ;
+            // TODO
+            const data = vnode.data;
+            // TODO
+            const oldCh = oldVnode.children;
+            const ch = vnode.children;
+            if (isUndef(vnode.text)) { // 新vnode text isUndef
+                if (isDef(oldCh) && isDef(ch)) { // vnode不是一个文本，那就会看有没有子节点
+                    if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue); // 如果子节点不一样，去处理子节点
+                }
+            }else if (oldVnode.text !== vnode.text) {
+                nodeOps.setTextContent(elm, vnode.text);
+            }
+        }
+        function updateChildren (parentElm, oldCh, newCh, insertedVnodeQueue, removeOnly) { // 更新Children
+            let oldStartIdx = 0;
+            let newStartIdx = 0;
+            let oldEndIdx = oldCh.length - 1; // oldCh的数组长度
+            let oldStartVnode = oldCh[0]; // oldCh的一个
+            let oldEndVnode = oldCh[oldEndIdx]; // oldCh的最后一个
+            let newEndIdx = newCh.length - 1; // newCh的数组长度
+            let newStartVnode = newCh[0]; // newCh的一个
+            let newEndVnode = newCh[newEndIdx]; // newCh的最后一个
+            while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
+                if (isUndef(oldStartVnode)) ; else if (isUndef(oldEndVnode)) ; else if (sameVnode(oldStartVnode, newStartVnode)) { // 通过sameVnode判断老的和新的，如果返回true，处理，老的和新的都取下一个再循环
+                    console.log('gsdsameVnode');
+                    patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, newCh);
+                    oldStartVnode = oldCh[++oldStartIdx];
+                    newStartVnode = newCh[++newStartIdx];
+                } else if (sameVnode(oldEndVnode, newEndVnode)) ; else if (sameVnode(oldStartVnode, newEndVnode)) ; else if (sameVnode(oldEndVnode, newStartVnode)) ;
+
+            }
+        }
         function removeNode (el) { // 删除一个真实的element
             const parent = nodeOps.parentNode(el);
             if (isDef(parent)) {
@@ -1154,7 +1197,9 @@
                 createElm(vnode, insertedVnodeQueue);
             } else {
                 const isRealElement = isDef(oldVnode.nodeType); // 判断老节点是不是一个真实的element
-                if (!isRealElement && sameVnode(oldVnode, vnode)) ;else {
+                if (!isRealElement && sameVnode(oldVnode, vnode)) { // 通过sameVnode来判断oldVnode和vnode
+                    patchVnode(oldVnode, vnode, insertedVnodeQueue, null);
+                }else {
                     if (isRealElement) { // 如果是一个真实的element,会转化为一个vNode当成oldVnode
                         /*如果节点是一个元素节点，nodeType 属性返回 1。属性节点, nodeType 属性返回 2。文本节点，nodeType 属性返回 3。注释节点，nodeType 属性返回 8。*/
                         if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {
@@ -1217,6 +1262,10 @@
         node.removeChild(child);
     }
 
+    function setTextContent (node, text) { // 设置node的文本内容
+        node.textContent = text;
+    }
+
     var nodeOps = /*#__PURE__*/Object.freeze({
         __proto__: null,
         createElement: createElement$1,
@@ -1226,7 +1275,8 @@
         createTextNode: createTextNode,
         nextSibling: nextSibling,
         insertBefore: insertBefore,
-        removeChild: removeChild
+        removeChild: removeChild,
+        setTextContent: setTextContent
     });
 
     function updateClass (oldVnode, vnode) {
