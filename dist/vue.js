@@ -292,6 +292,8 @@
             this.context = context;
             this.componentOptions = componentOptions;
             this.asyncFactory = asyncFactory;
+            this.key = data && data.key;
+            this.isComment = false;
         }
     }
 
@@ -1013,8 +1015,26 @@
     const emptyNode = new VNode('', {}, []);
     const hooks = ['create', 'activate', 'update', 'remove', 'destroy'];
 
+    // 比对两个vnoode:
+    // 情况1：tag相同，isComment相同，data有定义
     function sameVnode (a, b) {
-        return false // TODO
+        return (
+            a.key === b.key && (
+                (
+                    a.tag === b.tag &&
+                    a.isComment === b.isComment &&
+                    isDef(a.data) === isDef(b.data) &&
+                    sameInputType(a)
+                ) || (
+                    false // TODO
+                )
+            )
+        )
+    }
+
+    function sameInputType (a, b) {
+        if (a.tag !== 'input') return true
+        // TODO
     }
 
     function createPatchFunction (backend) {
@@ -1134,7 +1154,7 @@
                 createElm(vnode, insertedVnodeQueue);
             } else {
                 const isRealElement = isDef(oldVnode.nodeType); // 判断老节点是不是一个真实的element
-                if (!isRealElement && sameVnode()) ;else {
+                if (!isRealElement && sameVnode(oldVnode, vnode)) ;else {
                     if (isRealElement) { // 如果是一个真实的element,会转化为一个vNode当成oldVnode
                         /*如果节点是一个元素节点，nodeType 属性返回 1。属性节点, nodeType 属性返回 2。文本节点，nodeType 属性返回 3。注释节点，nodeType 属性返回 8。*/
                         if (oldVnode.nodeType === 1 && oldVnode.hasAttribute(SSR_ATTR)) {

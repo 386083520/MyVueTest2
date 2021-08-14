@@ -8,6 +8,8 @@ export default class VNode {
         this.context = context
         this.componentOptions = componentOptions
         this.asyncFactory = asyncFactory
+        this.key = data && data.key
+        this.isComment = false
     }
 }
 

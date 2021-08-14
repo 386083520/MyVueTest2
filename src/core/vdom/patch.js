@@ -6,8 +6,26 @@ import { isTrue } from '../util/index'
 export const emptyNode = new VNode('', {}, [])
 const hooks = ['create', 'activate', 'update', 'remove', 'destroy']
 
+// 比对两个vnoode:
+// 情况1：tag相同，isComment相同，data有定义
 function sameVnode (a, b) {
-    return false // TODO
+    return (
+        a.key === b.key && (
+            (
+                a.tag === b.tag &&
+                a.isComment === b.isComment &&
+                isDef(a.data) === isDef(b.data) &&
+                sameInputType(a, b)
+            ) || (
+                false // TODO
+            )
+        )
+    )
+}
+
+function sameInputType (a, b) {
+    if (a.tag !== 'input') return true
+    // TODO
 }
 
 export function createPatchFunction (backend) {
