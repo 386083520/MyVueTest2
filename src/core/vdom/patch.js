@@ -202,6 +202,11 @@ export function createPatchFunction (backend) {
             }
 
         }
+        if (oldStartIdx > oldEndIdx) {
+            // TODO
+        }else if(newStartIdx > newEndIdx) {
+            removeVnodes(oldCh, oldStartIdx, oldEndIdx)
+        }
     }
     function findIdxInOld (node, oldCh, start, end) { // 查找新vnode在老vnode的中的一个位置
         for (let i = start; i < end; i++) {
@@ -221,6 +226,8 @@ export function createPatchFunction (backend) {
             if (isDef(ch)) {
                 if (isDef(ch.tag)) {
                     removeAndInvokeRemoveHook(ch)
+                }else {
+                    removeNode(ch.elm)
                 }
             }
         }
