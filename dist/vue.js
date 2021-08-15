@@ -301,7 +301,7 @@
         return new VNode(undefined, undefined, undefined, String(val))
     }
 
-    const createEmptyVNode = (text = '123') => {
+    const createEmptyVNode = (text = '') => {
         const node = new VNode();
         node.text = text;
         node.isComment = true;
@@ -1076,6 +1076,16 @@
         // TODO
     }
 
+    function createKeyToOldIdx (children, beginIdx, endIdx) {
+        let i, key;
+        const map = {};
+        for (i = beginIdx; i <= endIdx; ++i) {
+            key = children[i].key;
+            if (isDef(key)) map[key] = i;
+        }
+        return map
+    }
+
     function createPatchFunction (backend) {
         let i,j;
         const cbs = {};
@@ -1187,14 +1197,29 @@
             let newEndIdx = newCh.length - 1; // newCh的数组长度
             let newStartVnode = newCh[0]; // newCh的一个
             let newEndVnode = newCh[newEndIdx]; // newCh的最后一个
+            let oldKeyToIdx, idxInOld;
             while (oldStartIdx <= oldEndIdx && newStartIdx <= newEndIdx) {
                 if (isUndef(oldStartVnode)) ; else if (isUndef(oldEndVnode)) ; else if (sameVnode(oldStartVnode, newStartVnode)) { // 通过sameVnode判断老的和新的，如果返回true，处理，老的和新的都取下一个再循环
                     console.log('gsdsameVnode');
                     patchVnode(oldStartVnode, newStartVnode, insertedVnodeQueue, newCh);
                     oldStartVnode = oldCh[++oldStartIdx];
                     newStartVnode = newCh[++newStartIdx];
-                } else if (sameVnode(oldEndVnode, newEndVnode)) ; else if (sameVnode(oldStartVnode, newEndVnode)) ; else if (sameVnode(oldEndVnode, newStartVnode)) ;
+                } else if (sameVnode(oldEndVnode, newEndVnode)) ; else if (sameVnode(oldStartVnode, newEndVnode)) ; else if (sameVnode(oldEndVnode, newStartVnode)) ; else {
+                    if(isUndef(oldKeyToIdx)) oldKeyToIdx = createKeyToOldIdx(oldCh, oldStartIdx, oldEndIdx); // 生成老的child key对应的位置的一个map
+                    idxInOld = isDef(newStartVnode.key)
+                        ? oldKeyToIdx[newStartVnode.key]: findIdxInOld(newStartVnode, oldCh, oldStartIdx, oldEndIdx);
+                    if (isUndef(idxInOld)) {
+                        createElm(newStartVnode, insertedVnodeQueue, parentElm, oldStartVnode.elm, false, newCh);
+                    }
+                    newStartVnode = newCh[++newStartIdx];
+                }
 
+            }
+        }
+        function findIdxInOld (node, oldCh, start, end) { // 查找新vnode在老vnode的中的一个位置
+            for (let i = start; i < end; i++) {
+                const c = oldCh[i];
+                if (isDef(c) && sameVnode(node, c)) return i
             }
         }
         function removeNode (el) { // 删除一个真实的element
