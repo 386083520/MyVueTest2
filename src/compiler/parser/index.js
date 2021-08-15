@@ -193,7 +193,10 @@ export function parse (template, options) {
                 if (options.outputSourceRange) {
                     element.start = start
                     element.end = end
-                    element.rawAttrsMap = [] // TODO
+                    element.rawAttrsMap = element.attrsList.reduce((cumulated, attr) => {
+                        cumulated[attr.name] = attr
+                        return cumulated
+                    }, {})
                 }
                 attrs.forEach(attr => {
                     if (invalidAttributeRE.test(attr.name)) {

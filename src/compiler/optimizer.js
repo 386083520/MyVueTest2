@@ -51,6 +51,6 @@ function isStatic (node) {
         return true
     }
     return !!( // TODO
-        true
+        !node.if
     )
 }

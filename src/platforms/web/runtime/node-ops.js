@@ -34,3 +34,7 @@ export function removeChild (node, child) { // 移除node指定的子元素
 export function setTextContent (node, text) { // 设置node的文本内容
     node.textContent = text
 }
+
+export function createComment (text) {
+    return document.createComment(text)
+}

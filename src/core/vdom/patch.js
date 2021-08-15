@@ -67,6 +67,9 @@ export function createPatchFunction (backend) {
                 }
                 insert(parentElm, vnode.elm, refElm)
             }
+        } else if (isTrue(vnode.isComment)) {
+            vnode.elm = nodeOps.createComment(vnode.text)
+            insert(parentElm, vnode.elm, refElm)
         } else {
             vnode.elm = nodeOps.createTextNode(vnode.text)
             insert(parentElm, vnode.elm, refElm)

@@ -32,7 +32,9 @@ export function genElement (el, state) { // 这个是一个递归函数
     }
     if (el.staticRoot && !el.staticProcessed) {
         return genStatic(el, state)
-    }else if (false) { // TODO
+    } else if (el.if && !el.ifProcessed) {
+        return genIf(el, state)
+    } else if (false) { // TODO
     }else {
         let code
         if (el.component) {
@@ -59,6 +61,33 @@ function genStatic (el, state) {
         state.staticRenderFns.length - 1
       }
     )`
+}
+
+function genOnce() { // TODO
+}
+
+export function genIf (el, state, altGen, altEmpty) {
+    el.ifProcessed = true
+    return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
+}
+
+function genIfConditions (conditions, state, altGen, altEmpty) {
+    if (!conditions.length) {
+        return altEmpty || '_e()'
+    }
+    const condition = conditions.shift()
+    if (condition.exp) {
+        return `(${condition.exp})?${
+            genTernaryExp(condition.block)
+        }:${
+            genIfConditions(conditions, state, altGen, altEmpty)
+        }`
+    } else {
+        // TODO
+    }
+    function genTernaryExp (el) {
+        return altGen? altGen(el, state): el.once? genOnce(el, state): genElement(el, state)
+    }
 }
 
 export function genData (el, state) {

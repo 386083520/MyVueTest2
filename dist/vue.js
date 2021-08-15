@@ -301,6 +301,13 @@
         return new VNode(undefined, undefined, undefined, String(val))
     }
 
+    const createEmptyVNode = (text = '123') => {
+        const node = new VNode();
+        node.text = text;
+        node.isComment = true;
+        return node
+    };
+
     function normalizeChildren (children) {
         return isPrimitive(children) ? [createTextVNode(children)]: (Array.isArray(children) ? normalizeArrayChildren(children): undefined)
     }
@@ -769,6 +776,7 @@
         target._v = createTextVNode;
         target._s = toString;
         target._m = renderStatic;
+        target._e = createEmptyVNode;
     }
 
     function resolveSlots (children, context) {
@@ -1099,6 +1107,9 @@
                     }
                     insert(parentElm, vnode.elm, refElm);
                 }
+            } else if (isTrue(vnode.isComment)) {
+                vnode.elm = nodeOps.createComment(vnode.text);
+                insert(parentElm, vnode.elm, refElm);
             } else {
                 vnode.elm = nodeOps.createTextNode(vnode.text);
                 insert(parentElm, vnode.elm, refElm);
@@ -1296,6 +1307,10 @@
         node.textContent = text;
     }
 
+    function createComment (text) {
+        return document.createComment(text)
+    }
+
     var nodeOps = /*#__PURE__*/Object.freeze({
         __proto__: null,
         createElement: createElement$1,
@@ -1306,7 +1321,8 @@
         nextSibling: nextSibling,
         insertBefore: insertBefore,
         removeChild: removeChild,
-        setTextContent: setTextContent
+        setTextContent: setTextContent,
+        createComment: createComment
     });
 
     function updateClass (oldVnode, vnode) {
@@ -2048,7 +2064,10 @@
                     if (options.outputSourceRange) {
                         element.start = start;
                         element.end = end;
-                        element.rawAttrsMap = []; // TODO
+                        element.rawAttrsMap = element.attrsList.reduce((cumulated, attr) => {
+                            cumulated[attr.name] = attr;
+                            return cumulated
+                        }, {});
                     }
                     attrs.forEach(attr => {
                         if (invalidAttributeRE.test(attr.name)) {
@@ -2410,7 +2429,9 @@
         if (el.parent) ;
         if (el.staticRoot && !el.staticProcessed) {
             return genStatic(el, state)
-        }else {
+        } else if (el.if && !el.ifProcessed) {
+            return genIf(el, state)
+        } else {
             let code;
             if (el.component) ;else {
                 // {staticClass:"container"},[_v("aaa")]
@@ -2434,6 +2455,31 @@
         state.staticRenderFns.length - 1
       }
     )`
+    }
+
+    function genOnce() { // TODO
+    }
+
+    function genIf (el, state, altGen, altEmpty) {
+        el.ifProcessed = true;
+        return genIfConditions(el.ifConditions.slice(), state, altGen, altEmpty)
+    }
+
+    function genIfConditions (conditions, state, altGen, altEmpty) {
+        if (!conditions.length) {
+            return altEmpty || '_e()'
+        }
+        const condition = conditions.shift();
+        if (condition.exp) {
+            return `(${condition.exp})?${
+            genTernaryExp(condition.block)
+        }:${
+            genIfConditions(conditions, state, altGen, altEmpty)
+        }`
+        }
+        function genTernaryExp (el) {
+            return altGen? altGen(el, state): el.once? genOnce(): genElement(el, state)
+        }
     }
 
     function genData (el, state) {
@@ -2539,7 +2585,7 @@
             return true
         }
         return !!( // TODO
-            true
+            !node.if
         )
     }
 
