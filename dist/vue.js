@@ -2539,6 +2539,8 @@
 
     function genData (el, state) {
         let data = '{';
+        const dirs = genDirectives(el, state);
+        if (dirs) data += dirs + ',';
         for (let i = 0; i < state.dataGenFns.length; i++) { // dataGenFns是从options里面拿到的很多的genData的一个数组
             data += state.dataGenFns[i](el);
         }
@@ -2591,6 +2593,33 @@
         }
     }
 
+    function genDirectives (el, state) {
+        const dirs = el.directives;
+        if (!dirs) return
+        let res = 'directives:[';
+        let hasRuntime = false;
+        let i, l, dir, needRuntime;
+        for (i = 0, l = dirs.length; i < l; i++) {
+            dir = dirs[i];
+            needRuntime = true;
+            const gen = state.directives[dir.name];
+            if (gen) {
+                needRuntime = !!gen(el, dir, state.warn);
+            }
+            if (needRuntime) {
+                hasRuntime = true;
+                res += `{name:"${dir.name}",rawName:"${dir.rawName}"
+            ${dir.value ? `,value:(${dir.value}),expression:${JSON.stringify(dir.value)}` : ''}
+            ${dir.arg ? `` : ''}
+            ${dir.modifiers ? `` : ''}
+            },`; // TODO
+            }
+        }
+        if (hasRuntime) {
+            return res.slice(0, -1) + ']' // slice(0, -1) 从索引0开始，到索引最后一个结束，不包括最后索引项
+        }
+    }
+
     // 遍历ast的树，检测出完全是静态的子树。比如：从来都不需要改变的dom
     // 好处：1，在每次re-render的过程中不需要重新生成node；2，patching的过程中可以完全的跳过
     function optimize (root, options) {
@@ -2640,7 +2669,7 @@
             return true
         }
         return !!( // TODO
-            !node.if
+            !node.if && !node.hasBindings
         )
     }
 
@@ -2689,8 +2718,20 @@
         klass$1
     ];
 
-    var directives = {
+    function html (el, dir) {
 
+    }
+
+    function text (el, dir) {
+    }
+
+    function model (el, dir, _warn) {
+    }
+
+    var directives = {
+        html,
+        text,
+        model
     };
 
     const baseOptions = {

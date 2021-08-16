@@ -92,6 +92,8 @@ function genIfConditions (conditions, state, altGen, altEmpty) {
 
 export function genData (el, state) {
     let data = '{'
+    const dirs = genDirectives(el, state)
+    if (dirs) data += dirs + ','
     for (let i = 0; i < state.dataGenFns.length; i++) { // dataGenFns是从options里面拿到的很多的genData的一个数组
         data += state.dataGenFns[i](el)
     }
@@ -148,5 +150,32 @@ function genProps (props) {
         // TODO
     }else {
         return staticProps
+    }
+}
+
+function genDirectives (el, state) {
+    const dirs = el.directives
+    if (!dirs) return
+    let res = 'directives:['
+    let hasRuntime = false
+    let i, l, dir, needRuntime
+    for (i = 0, l = dirs.length; i < l; i++) {
+        dir = dirs[i]
+        needRuntime = true
+        const gen = state.directives[dir.name]
+        if (gen) {
+            needRuntime = !!gen(el, dir, state.warn)
+        }
+        if (needRuntime) {
+            hasRuntime = true
+            res += `{name:"${dir.name}",rawName:"${dir.rawName}"
+            ${dir.value ? `,value:(${dir.value}),expression:${JSON.stringify(dir.value)}` : ''}
+            ${dir.arg ? `` : ''}
+            ${dir.modifiers ? `` : ''}
+            },` // TODO
+        }
+    }
+    if (hasRuntime) {
+        return res.slice(0, -1) + ']' // slice(0, -1) 从索引0开始，到索引最后一个结束，不包括最后索引项
     }
 }

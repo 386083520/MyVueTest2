@@ -51,6 +51,6 @@ function isStatic (node) {
         return true
     }
     return !!( // TODO
-        !node.if
+        !node.if && !node.hasBindings
     )
 }
