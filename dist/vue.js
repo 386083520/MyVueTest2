@@ -1215,7 +1215,6 @@
                 }
 
             }
-            debugger
             if (oldStartIdx > oldEndIdx) ;else if(newStartIdx > newEndIdx) {
                 removeVnodes(oldCh, oldStartIdx, oldEndIdx);
             }
@@ -1874,6 +1873,17 @@
             el.rawAttrsMap['v-bind:' + name] ||
             el.rawAttrsMap[name]
     }
+    function addDirective (el, name, rawName, value, arg, isDynamicArg, modifiers, range) {
+        (el.directives || (el.directives = [])).push(rangeSetItem({
+            name,
+            rawName,
+            value,
+            arg,
+            isDynamicArg,
+            modifiers
+        }, range));
+        el.plain = false;
+    }
 
     const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g;
     const buildRegex = function () { // TODO
@@ -1916,6 +1926,9 @@
     //import he from 'he'
 
     const dirRE = /^v-|^@|^:|^\.|^#/; //一些常用指令 // TODO
+    const bindRE = /^:|^\.|^v-bind:/; // bind的常见写法 :aaa .aaa v-bind:aaa   :class='aaa'
+    const onRE = /^@|^v-on:/; // 绑定事件的常见写法  @click v-on:click
+    const argRE = /:(.*)$/;
 
     const invalidAttributeRE = /[\s"'<>\/=]/;
     const lineBreakRE = /[\r\n]/; // 回车换行
@@ -2385,11 +2398,22 @@
 
     function processAttrs(el) {
         const list = el.attrsList;
-        let i,l, name, rawName, value;
+        let i,l, name, rawName, value, isDynamic, modifiers;
         for (i = 0, l = list.length; i < l; i++) {
             name = rawName = list[i].name;
             value = list[i].value;
-            if (dirRE.test(name)) ; else {// 常见的attrs
+            if (dirRE.test(name)) {// 对指令的处理
+                // TODO
+                el.hasBindings = true; // 只要attrsList里面的name是指令 则将hasBindings变为true
+                if (bindRE.test(name)) ; else if (onRE.test(name)) ; else { // normal directives
+                    name = name.replace(dirRE, ''); // v-show -> show
+                    const argMatch = name.match(argRE); // 匹配:XXX
+                    let arg = argMatch && argMatch[1];
+                    isDynamic = false; // TODO
+                    addDirective(el, name, rawName, value, arg, isDynamic, modifiers, list[i]);
+
+                }
+            } else {// 常见的attrs
                 addAttr(el, name, JSON.stringify(value), list[i]);
             }
         }

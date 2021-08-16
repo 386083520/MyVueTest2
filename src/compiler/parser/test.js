@@ -14,7 +14,7 @@ let match
 while ((match = defaultTagRE.exec('{{abc}}{{abcd}}{{abcde}}'))) {
     console.log(match)
 }*/
-let callbacks = [
+/*let callbacks = [
     'ccc',
     {
         'aaa': 'aaaa'
@@ -27,4 +27,9 @@ let callbacks = [
 const copies = callbacks.slice(0)
 copies[1]['aaa'] = 'aaaaa'
 console.log(copies)
-console.log(callbacks)
+console.log(callbacks)*/
+
+const argRE = /:(.*)$/
+
+const argMatch = ':'.match(argRE)
+console.log(argMatch)

@@ -1,13 +1,15 @@
 //import he from 'he'
 import { parseHTML } from "./html-parser";
-import {baseWarn} from "../helpers";
-import { pluckModuleFunction } from "../helpers";
+import { pluckModuleFunction, baseWarn, addDirective } from "../helpers";
 import { parseText } from "./text-parser";
 import {no, cached} from "../../shared/util";
 import { isIE, isEdge, isServerRendering } from "../../core/util/index";
 import { getAndRemoveAttr, getBindingAttr, addAttr, getRawBindingAttr } from "../helpers";
 
 export const dirRE = /^v-|^@|^:|^\.|^#/ //一些常用指令 // TODO
+export const bindRE = /^:|^\.|^v-bind:/ // bind的常见写法 :aaa .aaa v-bind:aaa   :class='aaa'
+export const onRE = /^@|^v-on:/ // 绑定事件的常见写法  @click v-on:click
+const argRE = /:(.*)$/
 
 const invalidAttributeRE = /[\s"'<>\/=]/
 const lineBreakRE = /[\r\n]/ // 回车换行
@@ -505,16 +507,39 @@ function processComponent(el) {
 
 function processAttrs(el) {
     const list = el.attrsList
-    let i,l, name, rawName, value
+    let i,l, name, rawName, value, isDynamic, modifiers
     for (i = 0, l = list.length; i < l; i++) {
         name = rawName = list[i].name
         value = list[i].value
         if (dirRE.test(name)) {// 对指令的处理
             // TODO
+            el.hasBindings = true // 只要attrsList里面的name是指令 则将hasBindings变为true
+            if (bindRE.test(name)) { // v-bind
+
+            } else if (onRE.test(name)) { // v-on
+
+            } else { // normal directives
+                name = name.replace(dirRE, '') // v-show -> show
+                const argMatch = name.match(argRE) // 匹配:XXX
+                let arg = argMatch && argMatch[1]
+                isDynamic = false // TODO
+                if (arg) {
+                    // TODO
+                }
+                addDirective(el, name, rawName, value, arg, isDynamic, modifiers, list[i])
+                if( true && name === 'model') { // TODO
+                    checkForAliasModel(el, value)
+                }
+
+            }
         } else {// 常见的attrs
             addAttr(el, name, JSON.stringify(value), list[i])
         }
     }
+}
+
+function checkForAliasModel (el, value) {
+
 }
 
 function processIfConditions (el, parent) { // elseif 和else的时候触发

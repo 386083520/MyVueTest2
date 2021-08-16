@@ -64,3 +64,16 @@ export function getRawBindingAttr (el, name){ // 从rawAttrsMap去取name的值
         el.rawAttrsMap['v-bind:' + name] ||
         el.rawAttrsMap[name]
 }
+export function addDirective (el, name, rawName, value, arg, isDynamicArg, modifiers, range) {
+    (el.directives || (el.directives = [])).push(rangeSetItem({
+        name,
+        rawName,
+        value,
+        arg,
+        isDynamicArg,
+        modifiers
+    }, range))
+    el.plain = false
+}
+
+
