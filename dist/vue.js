@@ -1463,9 +1463,19 @@
         }
     };
 
+    function locateNode (vnode) {
+        return vnode
+    }
+
     var show = {
         bind (el, { value }, vnode) {
             console.log('gsdbind', el, value, vnode);
+            vnode = locateNode(vnode);
+            const originalDisplay = el.__vOriginalDisplay =
+                el.style.display === 'none' ? '' : el.style.display;
+            {
+                el.style.display = value ? originalDisplay : 'none';
+            }
         },
         update (el, { value, oldValue }, vnode) {
         },
