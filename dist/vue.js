@@ -113,6 +113,10 @@
 
     const SSR_ATTR = 'data-server-rendered';
 
+    const ASSET_TYPES = [
+        'directive'
+    ];
+
     const LIFECYCLE_HOOKS = [
         'beforeCreate',
         'created',
@@ -135,6 +139,10 @@
         }
         const assets = options[type];
         if (hasOwn(assets, id)) return assets[id]
+        // TODO
+        const res = assets[id]; // TODO
+        return res
+
     }
     const defaultStrat = function (parentVal, childVal) {  // 默认的策略：childVal有值就用childVal，没值采用parentVal
         return childVal === undefined
@@ -1045,6 +1053,9 @@
 
     function initGlobalAPI (Vue) {
         Vue.options = Object.create(null);
+        ASSET_TYPES.forEach(type => {
+            Vue.options[type + 's'] = Object.create(null);
+        });
         Vue.options._base = Vue;
         initExtend(Vue);
     }
@@ -1097,6 +1108,7 @@
                     cbs[hooks[i]].push(modules[j][hooks[i]]);
                 }
             }
+            console.log('gsdcbs', cbs);
         }
         function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
             if (isDef(vnode.elm) && isDef(ownerArray)) ;
@@ -1378,12 +1390,97 @@
         klass
     ];
 
-    var baseModules = [];
+    var directives = {
+        create: updateDirectives
+    };
+
+    function updateDirectives (oldVnode, vnode) {
+        if (oldVnode.data.directives || vnode.data.directives) {
+            _update(oldVnode, vnode);
+        }
+    }
+
+    function _update (oldVnode, vnode) {
+        const oldDirs = normalizeDirectives(oldVnode.data.directives, oldVnode.context);
+        const newDirs = normalizeDirectives(vnode.data.directives, vnode.context);
+        console.log('gsdnewDirs', newDirs);
+        let key, oldDir, dir;
+        for (key in newDirs) {
+            oldDir = oldDirs[key];
+            dir = newDirs[key];
+            if (!oldDir) {
+                callHook$1(dir, 'bind', vnode, oldVnode);
+                if (dir.def && dir.def.inserted) ;
+            }
+        }
+    }
+
+    const emptyModifiers = Object.create(null);
+
+    function normalizeDirectives (dirs, vm) {
+        const res = Object.create(null);
+        if (!dirs) {
+            return res
+        }
+        let i, dir;
+        for (i = 0; i < dirs.length; i++) {
+            dir = dirs[i];
+            if (!dir.modifiers) {
+                dir.modifiers = emptyModifiers;
+            }
+            res[getRawDirName(dir)] = dir;
+            dir.def = resolveAsset(vm.$options, 'directives', dir.name);
+        }
+        return res
+    }
+
+    function getRawDirName (dir) {
+        return dir.rawName // TODO
+    }
+
+    function callHook$1 (dir, hook, vnode, oldVnode, isDestroy) {
+        const fn = dir.def && dir.def[hook];
+        if (fn) {
+            try {
+                fn(vnode.elm, dir, vnode, oldVnode, isDestroy);
+            } catch (e) {
+                // TODO
+            }
+        }
+    }
+
+    var baseModules = [
+        directives
+    ];
 
     const modules = platformModules.concat(baseModules);
     const patch = createPatchFunction({nodeOps, modules});
 
+    const directive = {
+        inserted (el, binding, vnode, oldVnode) {
+        },
+        componentUpdated (el, binding, vnode) {
+        }
+    };
+
+    var show = {
+        bind (el, { value }, vnode) {
+            console.log('gsdbind', el, value, vnode);
+        },
+        update (el, { value, oldValue }, vnode) {
+        },
+        unbind (el, binding, vnode, oldVnode, isDestroy) {
+        }
+    };
+
+    var platformDirectives = {
+        model: directive,
+        show
+    };
+
     Vue.prototype.__patch__ = patch;
+
+    extend(Vue.options.directives, platformDirectives);
 
     Vue.prototype.$mount = function (el, hydrating) {
         return mountComponent(this, el, hydrating)
@@ -2728,7 +2825,7 @@
     function model (el, dir, _warn) {
     }
 
-    var directives = {
+    var directives$1 = {
         html,
         text,
         model
@@ -2736,7 +2833,7 @@
 
     const baseOptions = {
         modules: modules$1,
-        directives,
+        directives: directives$1,
         expectHTML: true,
         isReservedTag, // 是否是保留标签
         isUnaryTag, // 一元标签

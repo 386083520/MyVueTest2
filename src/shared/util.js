@@ -85,5 +85,10 @@ export function remove (arr, item) {
     }
 }
 
+const camelizeRE = /-(\w)/g // 0-9 a-z A-Z _
+export const camelize = cached((str) => {
+    return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : '')
+})
+
 
 

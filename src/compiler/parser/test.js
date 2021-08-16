@@ -29,7 +29,16 @@ copies[1]['aaa'] = 'aaaaa'
 console.log(copies)
 console.log(callbacks)*/
 
-const argRE = /:(.*)$/
+/*const argRE = /:(.*)$/
 
 const argMatch = ':'.match(argRE)
-console.log(argMatch)
+console.log(argMatch)*/
+
+
+const camelizeRE = /-(\w)/g // 0-9 a-z A-Z _
+const camelize = (str) => {
+    return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : '')
+}
+console.log(camelize('show'))
+
+

@@ -49,6 +49,7 @@ export function createPatchFunction (backend) {
                 cbs[hooks[i]].push(modules[j][hooks[i]])
             }
         }
+        console.log('gsdcbs', cbs)
     }
     function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
         if (isDef(vnode.elm) && isDef(ownerArray)) {

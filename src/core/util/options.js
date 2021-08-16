@@ -1,4 +1,4 @@
-import { hasOwn } from "../../shared/util";
+import { hasOwn, camelize } from "../../shared/util";
 import config from "../config"
 import {LIFECYCLE_HOOKS} from "../../shared/constants";
 
@@ -9,6 +9,12 @@ export function resolveAsset (options, type, id, warnMissing) {
     }
     const assets = options[type]
     if (hasOwn(assets, id)) return assets[id]
+    // TODO
+    const res = assets[id] // TODO
+    if (warnMissing && !res) { // TODO
+    }
+    return res
+
 }
 const defaultStrat = function (parentVal, childVal) {  // 默认的策略：childVal有值就用childVal，没值采用parentVal
     return childVal === undefined
