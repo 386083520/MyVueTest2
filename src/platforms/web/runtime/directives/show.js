@@ -14,6 +14,14 @@ export default {
         }
     },
     update (el, { value, oldValue }, vnode) {
+        if (!value === !oldValue) return
+        vnode = locateNode(vnode)
+        const transition = '' // TODO
+        if (transition) {
+
+        }else {
+            el.style.display = value ? el.__vOriginalDisplay : 'none'
+        }
     },
     unbind (el, binding, vnode, oldVnode, isDestroy) {
     }

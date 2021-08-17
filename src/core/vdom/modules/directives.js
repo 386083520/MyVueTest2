@@ -2,7 +2,8 @@ import {emptyNode} from "../patch";
 import { resolveAsset } from "../../util/index";
 
 export default {
-    create: updateDirectives
+    create: updateDirectives,
+    update: updateDirectives
 }
 
 function updateDirectives (oldVnode, vnode) {
@@ -27,6 +28,12 @@ function _update (oldVnode, vnode) {
                 // TODO
             }
         } else {
+            dir.oldValue = oldDir.value
+            dir.oldArg = oldDir.arg
+            callHook(dir, 'update', vnode, oldVnode)
+            if (dir.def && dir.def.componentUpdated) {
+                // TODO
+            }
         }
     }
 }

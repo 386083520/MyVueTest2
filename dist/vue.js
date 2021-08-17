@@ -1177,6 +1177,11 @@
             if (isDef(vnode.data.pendingInsert)) ;
             vnode.elm = vnode.componentInstance.$el;
         }
+
+        function isPatchable (vnode) { // TODO
+            return isDef(vnode.tag)
+        }
+
         function patchVnode (oldVnode, vnode, insertedVnodeQueue, ownerArray, index, removeOnly) {
             if (oldVnode === vnode) {
                 return
@@ -1192,6 +1197,10 @@
             // TODO
             const oldCh = oldVnode.children;
             const ch = vnode.children;
+            if (isDef(data) && isPatchable(vnode)) {
+                for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode);
+            }
+
             if (isUndef(vnode.text)) { // 新vnode text isUndef
                 if (isDef(oldCh) && isDef(ch)) { // vnode不是一个文本，那就会看有没有子节点
                     if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue); // 如果子节点不一样，去处理子节点
@@ -1391,7 +1400,8 @@
     ];
 
     var directives = {
-        create: updateDirectives
+        create: updateDirectives,
+        update: updateDirectives
     };
 
     function updateDirectives (oldVnode, vnode) {
@@ -1411,6 +1421,11 @@
             if (!oldDir) {
                 callHook$1(dir, 'bind', vnode, oldVnode);
                 if (dir.def && dir.def.inserted) ;
+            } else {
+                dir.oldValue = oldDir.value;
+                dir.oldArg = oldDir.arg;
+                callHook$1(dir, 'update', vnode, oldVnode);
+                if (dir.def && dir.def.componentUpdated) ;
             }
         }
     }
@@ -1478,6 +1493,10 @@
             }
         },
         update (el, { value, oldValue }, vnode) {
+            if (!value === !oldValue) return
+            {
+                el.style.display = value ? el.__vOriginalDisplay : 'none';
+            }
         },
         unbind (el, binding, vnode, oldVnode, isDestroy) {
         }

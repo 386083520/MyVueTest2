@@ -136,6 +136,11 @@ export function createPatchFunction (backend) {
     function invokeDestroyHook (vnode) {
 
     }
+
+    function isPatchable (vnode) { // TODO
+        return isDef(vnode.tag)
+    }
+
     function patchVnode (oldVnode, vnode, insertedVnodeQueue, ownerArray, index, removeOnly) {
         if (oldVnode === vnode) {
             return
@@ -153,6 +158,10 @@ export function createPatchFunction (backend) {
         // TODO
         const oldCh = oldVnode.children
         const ch = vnode.children
+        if (isDef(data) && isPatchable(vnode)) {
+            for (i = 0; i < cbs.update.length; ++i) cbs.update[i](oldVnode, vnode)
+        }
+
         if (isUndef(vnode.text)) { // 新vnode text isUndef
             if (isDef(oldCh) && isDef(ch)) { // vnode不是一个文本，那就会看有没有子节点
                 if (oldCh !== ch) updateChildren(elm, oldCh, ch, insertedVnodeQueue, removeOnly) // 如果子节点不一样，去处理子节点
