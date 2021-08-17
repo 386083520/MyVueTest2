@@ -6,21 +6,22 @@
     <script src="../dist/vue.js"></script>
 </head>
 <body>
-    <!--anonymous(
-    ) {
-    with(this){return _c('div',{staticClass:"container",attrs:{"id":"app"}},[_c('div',{directives:[{name:"show",rawName:"v-show",value:(isShow),expression:"isShow"}]},[_v("6666")])])}
-    }-->
-    <!--anonymous(
-    ) {
-    with(this){return _m(0)}
-    }-->
-    <!--directives hasBindings-->
+
     <div class="container" id="app">
         <div v-show="isShow">6666</div>
     </div>
     <script>
+        Vue.mixin({
+            created: function () {
+                var myOption = this.$options.myOption
+                if (myOption) {
+                    console.log('gsdmyOption', myOption)
+                }
+            }
+        })
         let vm = new Vue({
             el: '#app',
+            myOption: 'hello!',
             data: {
                 'abc': 'aabbcc',
                 'isShow': false

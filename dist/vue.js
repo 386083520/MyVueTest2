@@ -1051,12 +1051,20 @@
         };
     }
 
+    function initMixin$1 (Vue) {
+        Vue.mixin = function (mixin) {
+            this.options = mergeOptions(this.options, mixin);
+            return this
+        };
+    }
+
     function initGlobalAPI (Vue) {
         Vue.options = Object.create(null);
         ASSET_TYPES.forEach(type => {
             Vue.options[type + 's'] = Object.create(null);
         });
         Vue.options._base = Vue;
+        initMixin$1(Vue);
         initExtend(Vue);
     }
 
