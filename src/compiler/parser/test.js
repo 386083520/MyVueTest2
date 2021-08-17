@@ -35,10 +35,23 @@ const argMatch = ':'.match(argRE)
 console.log(argMatch)*/
 
 
-const camelizeRE = /-(\w)/g // 0-9 a-z A-Z _
+/*const camelizeRE = /-(\w)/g // 0-9 a-z A-Z _
 const camelize = (str) => {
     return str.replace(camelizeRE, (_, c) => c ? c.toUpperCase() : '')
 }
-console.log(camelize('show'))
+console.log(camelize('show'))*/
+
+function toArray (list, start) {
+    debugger
+    start = start || 0
+    let i = list.length - start
+    const ret = new Array(i)
+    while (i--) {
+        ret[i] = list[i + start]
+    }
+    return ret
+}
+
+console.log(toArray([1,2,3,4,5], 2))
 
 

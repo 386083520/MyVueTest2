@@ -8,6 +8,7 @@ export function initGlobalAPI (Vue) {
         Vue.options[type + 's'] = Object.create(null)
     })
     Vue.options._base = Vue
+    initUse(Vue)
     initMixin(Vue)
     initExtend(Vue)
 }
