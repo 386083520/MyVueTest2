@@ -121,6 +121,7 @@ export function createPatchFunction (backend) {
                 i(vnode, false)
             }
             if (isDef(vnode.componentInstance)) {
+                console.log('gsdvnode.componentInstance', vnode.componentInstance)
                 initComponent(vnode, insertedVnodeQueue)
                 insert(parentElm, vnode.elm, refElm)
                 return true

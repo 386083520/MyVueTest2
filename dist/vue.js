@@ -604,7 +604,7 @@
         const vnode = new VNode(
             `vue-component-${Ctor.cid}${name ? `-${name}` : ''}`,
             data, undefined, undefined, undefined, context,{ Ctor, propsData, listeners, tag, children } ,asyncFactory);
-        console.log('gsdvnode', vnode);
+        console.log('gsdvnodecreateComponent', vnode);
         return vnode
     }
 
@@ -1058,12 +1058,31 @@
         };
     }
 
+    function initUse (Vue) {
+        Vue.use = function (plugin) {
+            const installedPlugins = (this._installedPlugins || (this._installedPlugins = []));
+            if (installedPlugins.indexOf(plugin) > -1) {
+                return this
+            }
+            const args = toArray(arguments, 1); // [this,2,3]
+            args.unshift(this);
+            if (typeof plugin.install === 'function') {
+                plugin.install.apply(plugin, args);
+            } else if (typeof plugin === 'function') {
+                plugin.apply(null, args);
+            }
+            installedPlugins.push(plugin);
+            return this
+        };
+    }
+
     function initGlobalAPI (Vue) {
         Vue.options = Object.create(null);
         ASSET_TYPES.forEach(type => {
             Vue.options[type + 's'] = Object.create(null);
         });
         Vue.options._base = Vue;
+        initUse(Vue);
         initMixin$1(Vue);
         initExtend(Vue);
     }
@@ -1175,6 +1194,7 @@
                     i(vnode, false);
                 }
                 if (isDef(vnode.componentInstance)) {
+                    console.log('gsdvnode.componentInstance', vnode.componentInstance);
                     initComponent(vnode);
                     insert(parentElm, vnode.elm, refElm);
                     return true

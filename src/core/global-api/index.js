@@ -1,5 +1,6 @@
 import { initExtend } from "./extend"
 import { initMixin } from "./mixin";
+import {initUse} from "./use";
 import { ASSET_TYPES } from "../../shared/constants";
 
 export function initGlobalAPI (Vue) {

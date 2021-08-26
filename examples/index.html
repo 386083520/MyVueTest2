@@ -8,34 +8,21 @@
 <body>
 
     <div class="container" id="app">
-        <div v-show="isShow">6666</div>
+        <div>{{gsd}}</div>
+        <aaa></aaa>
     </div>
     <script>
-        Vue.mixin({
-            created: function () {
-                var myOption = this.$options.myOption
-                if (myOption) {
-                    console.log('gsdmyOption', myOption)
-                }
-            }
-        })
         let vm = new Vue({
             el: '#app',
-            myOption: 'hello!',
+            components: {
+                'aaa': {
+                    template: '<div>abc</div>'
+                }
+            },
             data: {
-                'abc': 'aabbcc',
-                'isShow': false
+                'gsd': '666'
             }
         })
     </script>
-    <style>
-        .container {
-            color: #f00;
-            background: #666;
-        }
-        .detail {
-            font-size: 50px;
-        }
-    </style>
 </body>
 </html>
