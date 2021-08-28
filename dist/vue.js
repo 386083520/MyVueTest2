@@ -1138,7 +1138,6 @@
             console.log('gsdcbs', cbs);
         }
         function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
-            debugger
             if (isDef(vnode.elm) && isDef(ownerArray)) ;
             vnode.isRootInsert = !nested;
             if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
@@ -2881,6 +2880,7 @@
     }
 
     function model (el, dir, _warn) {
+        return true
     }
 
     var directives$1 = {
@@ -2952,11 +2952,19 @@
             }
             console.log('gsdtemplate', template);
             if (template) {
-                /*// TODO
-                let render = function(createElement) {
-                    // return createElement(('div',{attrs:{"id":"app"}},[createElement('h2', 'bcd'), createElement('aaa')],1))
-                    return createElement('div', [createElement('h1', 'aaa111'), createElement('aaabbb')])
+                /*(function anonymous(
+                ) {
+                    with(this){return _c('div',{staticClass:"container",attrs:{"id":"app"}},[_c('input',{directives:[{name:"model",rawName:"v-model",value:(gsd),expression:"gsd"}],domProps:{"value":(gsd)},on:{"input":function($event){if($event.target.composing)return;gsd=$event.target.value}}})])}
+                })*/
+                /*anonymous(
+                ) {
+                    with(this){return _c('div',{staticClass:"container",attrs:{"id":"app"}},[_c('input',{})])}
                 }*/
+                /*(function anonymous(
+                ) {
+                    with(this){return _c('div',{staticClass:"container",attrs:{"id":"app"}},[_c('input',{directives:[{name:"show",rawName:"v-show"
+                            ,value:(gsd),expression:"gsd"}]})])}
+                })*/
                 const { render, staticRenderFns } = compileToFunctions(template, {
                     outputSourceRange: true,
                     shouldDecodeNewlines,
