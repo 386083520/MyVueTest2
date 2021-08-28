@@ -8,8 +8,7 @@
 <body>
 
     <div class="container" id="app">
-        <div>{{gsd}}</div>
-        <aaa></aaa>
+        <input v-show="gsd"/>
     </div>
     <script>
         let vm = new Vue({
@@ -20,7 +19,7 @@
                 }
             },
             data: {
-                'gsd': '666'
+                'gsd': true
             }
         })
     </script>

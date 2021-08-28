@@ -1138,6 +1138,7 @@
             console.log('gsdcbs', cbs);
         }
         function createElm (vnode, insertedVnodeQueue, parentElm, refElm, nested, ownerArray, index) {
+            debugger
             if (isDef(vnode.elm) && isDef(ownerArray)) ;
             vnode.isRootInsert = !nested;
             if (createComponent(vnode, insertedVnodeQueue, parentElm, refElm)) {
