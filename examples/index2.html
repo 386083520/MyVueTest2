@@ -6,19 +6,22 @@
     <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
 </head>
 <body>
-    <div class="container" id="app">
-    </div>
-    <script>
-        let vm = new Vue({
-            el: '#app',
-            template: '<div>aaa</div>',
-            data: {
-                'aaa': {
-                    'bbb': 'aaabbb'
-                },
-                'abc': 'aabbcc'
+<div class="container" id="app">
+    <div>{{gsd}}</div>
+    <aaa ref="aaaref"></aaa>
+</div>
+<script>
+    let vm = new Vue({
+        el: '#app',
+        components: {
+            'aaa': {
+                template: '<div>abc</div>'
             }
-        })
-    </script>
+        },
+        data: {
+            'gsd': '666'
+        }
+    })
+</script>
 </body>
 </html>
