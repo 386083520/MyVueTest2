@@ -76,4 +76,9 @@ export function addDirective (el, name, rawName, value, arg, isDynamicArg, modif
     el.plain = false
 }
 
+export function addProp (el, name, value, range, dynamic) {
+    (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range))
+    el.plain = false
+}
+
 

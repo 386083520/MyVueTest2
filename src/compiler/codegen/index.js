@@ -100,6 +100,9 @@ export function genData (el, state) {
     if (el.attrs) { // 对attributes的处理
         data += `attrs:${genProps(el.attrs)},`
     }
+    if (el.props) {
+        data += `domProps:${genProps(el.props)},`
+    }
     data = data.replace(/,$/, '') + '}'
     console.log('gsddata', data)
     return data

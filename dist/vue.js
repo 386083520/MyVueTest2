@@ -337,7 +337,6 @@
     }
 
     function mergeVNodeHook (def, hookKey, hook) {
-        debugger
         if (def instanceof VNode) {
             def = def.data.hook || (def.data.hook = {});
         }
@@ -1350,7 +1349,6 @@
             }
         }
         function invokeInsertHook (vnode, queue, initial) {
-            debugger
             if (isTrue(initial) && isDef(vnode.parent)) ;else {
                 for (var i = 0; i < queue.length; ++i) {
                     queue[i].data.hook.insert(queue[i]);
@@ -1358,7 +1356,6 @@
             }
         }
         return function patch (oldVnode, vnode, hydrating, removeOnly) {
-            debugger
             if (isUndef(vnode)) { // 在$destroy调用的时候会走这个逻辑
                 return
             }
@@ -1517,7 +1514,6 @@
                 }
             };
             if (isCreate) {
-                debugger
                 mergeVNodeHook(vnode, 'insert', callInsert);
             } else {
                 callInsert();
@@ -2104,6 +2100,11 @@
             isDynamicArg,
             modifiers
         }, range));
+        el.plain = false;
+    }
+
+    function addProp (el, name, value, range, dynamic) {
+        (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range));
         el.plain = false;
     }
 
@@ -2769,6 +2770,9 @@
         if (el.attrs) { // 对attributes的处理
             data += `attrs:${genProps(el.attrs)},`;
         }
+        if (el.props) {
+            data += `domProps:${genProps(el.props)},`;
+        }
         data = data.replace(/,$/, '') + '}';
         console.log('gsddata', data);
         return data
@@ -2948,7 +2952,17 @@
     }
 
     function model (el, dir, _warn) {
+        const tag = el.tag;
+        const value = dir.value;
+        const modifiers = dir.modifiers;
+        if (el.component) ; else if (tag === 'input' || tag === 'textarea') {
+            genDefaultModel(el, value);
+        }
         return true
+    }
+
+    function genDefaultModel (el,value,modifiers) {
+        addProp(el, 'value', `(${value})`);
     }
 
     var directives$1 = {
