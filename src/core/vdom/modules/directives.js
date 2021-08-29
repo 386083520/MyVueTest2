@@ -1,5 +1,6 @@
 import {emptyNode} from "../patch";
 import { resolveAsset } from "../../util/index";
+import { mergeVNodeHook } from "../helpers/index";
 
 export default {
     create: updateDirectives,
@@ -17,6 +18,7 @@ function _update (oldVnode, vnode) {
     const isDestroy = vnode === emptyNode
     const oldDirs = normalizeDirectives(oldVnode.data.directives, oldVnode.context)
     const newDirs = normalizeDirectives(vnode.data.directives, vnode.context)
+    const dirsWithInsert = []
     console.log('gsdnewDirs', newDirs)
     let key, oldDir, dir
     for (key in newDirs) {
@@ -26,6 +28,8 @@ function _update (oldVnode, vnode) {
             callHook(dir, 'bind', vnode, oldVnode)
             if (dir.def && dir.def.inserted) {
                 // TODO
+                console.log('gsdinserted')
+                dirsWithInsert.push(dir)
             }
         } else {
             dir.oldValue = oldDir.value
@@ -34,6 +38,18 @@ function _update (oldVnode, vnode) {
             if (dir.def && dir.def.componentUpdated) {
                 // TODO
             }
+        }
+    }
+    if (dirsWithInsert.length) {
+        const callInsert = () => {
+            for (let i = 0; i < dirsWithInsert.length; i++) {
+                callHook(dirsWithInsert[i], 'inserted', vnode, oldVnode)
+            }
+        }
+        if (isCreate) {
+            mergeVNodeHook(vnode, 'insert', callInsert)
+        } else {
+            callInsert()
         }
     }
 }

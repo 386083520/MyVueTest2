@@ -1448,7 +1448,10 @@
             dir = newDirs[key];
             if (!oldDir) {
                 callHook$1(dir, 'bind', vnode, oldVnode);
-                if (dir.def && dir.def.inserted) ;
+                if (dir.def && dir.def.inserted) {
+                    // TODO
+                    console.log('gsdinserted');
+                }
             } else {
                 dir.oldValue = oldDir.value;
                 dir.oldArg = oldDir.arg;
@@ -1501,6 +1504,7 @@
 
     const directive = {
         inserted (el, binding, vnode, oldVnode) {
+
         },
         componentUpdated (el, binding, vnode) {
         }

@@ -1,5 +1,6 @@
 const directive = {
     inserted (el, binding, vnode, oldVnode) {
+
     },
     componentUpdated (el, binding, vnode) {
     }
