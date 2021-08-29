@@ -262,6 +262,24 @@ export function createPatchFunction (backend) {
             removeNode(vnode.elm)
         }
     }
+    function invokeCreateHooks (vnode, insertedVnodeQueue) {
+        for (let i = 0; i < cbs.create.length; ++i) {
+            cbs.create[i](emptyNode, vnode)
+        }
+        i = vnode.data.hook
+        if (isDef(i)) {
+            if (isDef(i.insert)) insertedVnodeQueue.push(vnode)
+        }
+    }
+    function invokeInsertHook (vnode, queue, initial) {
+        if (isTrue(initial) && isDef(vnode.parent)) {
+
+        }else {
+            for (var i = 0; i < queue.length; ++i) {
+                queue[i].data.hook.insert(queue[i]);
+            }
+        }
+    }
     return function patch (oldVnode, vnode, hydrating, removeOnly) {
         if (isUndef(vnode)) { // 在$destroy调用的时候会走这个逻辑
             if (isDef(oldVnode)) {
@@ -269,8 +287,10 @@ export function createPatchFunction (backend) {
             }
             return
         }
+        let isInitialPatch = false
         const insertedVnodeQueue = []  // insertedVnodeQueue 在一次 patch 过程中维护的插入的 vnode 的队列
         if (isUndef(oldVnode)) {
+            isInitialPatch = true
             createElm(vnode, insertedVnodeQueue)
         } else {
             const isRealElement = isDef(oldVnode.nodeType) // 判断老节点是不是一个真实的element
@@ -304,12 +324,8 @@ export function createPatchFunction (backend) {
                 }
             }
         }
+        invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
         console.log('gsdpatch', vnode.elm)
         return vnode.elm
-    }
-    function invokeCreateHooks (vnode, insertedVnodeQueue) {
-        for (let i = 0; i < cbs.create.length; ++i) {
-            cbs.create[i](emptyNode, vnode)
-        }
     }
 }

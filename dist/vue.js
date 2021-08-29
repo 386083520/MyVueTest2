@@ -209,6 +209,12 @@
         return _isServer
     };
 
+    function invokeWithErrorHandling (handler, context, args, vm, info) {
+        let res;
+        res = args ? handler.apply(context, args) : handler.call(context);
+        return res
+    }
+
     let warn = noop;
     let tip = noop;
     let generateComponentTrace = noop;
@@ -315,6 +321,38 @@
         node.isComment = true;
         return node
     };
+
+    function createFnInvoker (fns, vm) {
+        function invoker () {
+            const fns = invoker.fns;
+            if (Array.isArray(fns)) {
+                const cloned = fns.slice();
+                for (let i = 0; i < cloned.length; i++) {
+                    invokeWithErrorHandling(cloned[i], null, arguments);
+                }
+            }
+        }
+        invoker.fns = fns;
+        return invoker
+    }
+
+    function mergeVNodeHook (def, hookKey, hook) {
+        debugger
+        if (def instanceof VNode) {
+            def = def.data.hook || (def.data.hook = {});
+        }
+        let invoker;
+        const oldHook = def[hookKey];
+        function wrappedHook () {
+            hook.apply(this, arguments);
+            // TODO
+        }
+        if (isUndef(oldHook)) {
+            invoker = createFnInvoker([wrappedHook]);
+        }
+        invoker.merged = true;
+        def[hookKey] = invoker;
+    }
 
     function normalizeChildren (children) {
         return isPrimitive(children) ? [createTextVNode(children)]: (Array.isArray(children) ? normalizeArrayChildren(children): undefined)
@@ -447,12 +485,6 @@
         teardown () {
             console.log('gsdteardown'); // TODO
         }
-    }
-
-    function invokeWithErrorHandling (handler, context, args, vm, info) {
-        let res;
-        res = args ? handler.apply(context, args) : handler.call(context);
-        return res
     }
 
     let activeInstance = null;
@@ -1152,7 +1184,7 @@
                     console.log('gsdelm', vnode.elm);
                     createChildren(vnode, children, insertedVnodeQueue);
                     if (isDef(data)) {
-                        invokeCreateHooks(vnode);
+                        invokeCreateHooks(vnode, insertedVnodeQueue);
                     }
                     insert(parentElm, vnode.elm, refElm);
                 }
@@ -1308,12 +1340,32 @@
                 removeNode(vnode.elm);
             }
         }
+        function invokeCreateHooks (vnode, insertedVnodeQueue) {
+            for (let i = 0; i < cbs.create.length; ++i) {
+                cbs.create[i](emptyNode, vnode);
+            }
+            i = vnode.data.hook;
+            if (isDef(i)) {
+                if (isDef(i.insert)) insertedVnodeQueue.push(vnode);
+            }
+        }
+        function invokeInsertHook (vnode, queue, initial) {
+            debugger
+            if (isTrue(initial) && isDef(vnode.parent)) ;else {
+                for (var i = 0; i < queue.length; ++i) {
+                    queue[i].data.hook.insert(queue[i]);
+                }
+            }
+        }
         return function patch (oldVnode, vnode, hydrating, removeOnly) {
+            debugger
             if (isUndef(vnode)) { // 在$destroy调用的时候会走这个逻辑
                 return
             }
+            let isInitialPatch = false;
             const insertedVnodeQueue = [];  // insertedVnodeQueue 在一次 patch 过程中维护的插入的 vnode 的队列
             if (isUndef(oldVnode)) {
+                isInitialPatch = true;
                 createElm(vnode, insertedVnodeQueue);
             } else {
                 const isRealElement = isDef(oldVnode.nodeType); // 判断老节点是不是一个真实的element
@@ -1339,13 +1391,9 @@
                     } else if (isDef(oldVnode.tag)) ;
                 }
             }
+            invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch);
             console.log('gsdpatch', vnode.elm);
             return vnode.elm
-        }
-        function invokeCreateHooks (vnode, insertedVnodeQueue) {
-            for (let i = 0; i < cbs.create.length; ++i) {
-                cbs.create[i](emptyNode, vnode);
-            }
         }
     }
 
@@ -1439,8 +1487,10 @@
     }
 
     function _update (oldVnode, vnode) {
+        const isCreate = oldVnode === emptyNode;
         const oldDirs = normalizeDirectives(oldVnode.data.directives, oldVnode.context);
         const newDirs = normalizeDirectives(vnode.data.directives, vnode.context);
+        const dirsWithInsert = [];
         console.log('gsdnewDirs', newDirs);
         let key, oldDir, dir;
         for (key in newDirs) {
@@ -1451,12 +1501,26 @@
                 if (dir.def && dir.def.inserted) {
                     // TODO
                     console.log('gsdinserted');
+                    dirsWithInsert.push(dir);
                 }
             } else {
                 dir.oldValue = oldDir.value;
                 dir.oldArg = oldDir.arg;
                 callHook$1(dir, 'update', vnode, oldVnode);
                 if (dir.def && dir.def.componentUpdated) ;
+            }
+        }
+        if (dirsWithInsert.length) {
+            const callInsert = () => {
+                for (let i = 0; i < dirsWithInsert.length; i++) {
+                    callHook$1(dirsWithInsert[i], 'inserted', vnode, oldVnode);
+                }
+            };
+            if (isCreate) {
+                debugger
+                mergeVNodeHook(vnode, 'insert', callInsert);
+            } else {
+                callInsert();
             }
         }
     }
@@ -1504,7 +1568,7 @@
 
     const directive = {
         inserted (el, binding, vnode, oldVnode) {
-
+            console.log('gsdmodelinserted');
         },
         componentUpdated (el, binding, vnode) {
         }

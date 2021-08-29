@@ -1,5 +1,6 @@
 import {isUndef} from "../../../shared/util";
 import { createFnInvoker } from "./update-listeners";
+import VNode from '../VNode'
 
 export function mergeVNodeHook (def, hookKey, hook) {
     if (def instanceof VNode) {
