@@ -2056,6 +2056,44 @@
         return exp // TODO
     }
 
+    const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g;
+    const buildRegex = function () { // TODO
+    };
+    function parseText (text, delimiters) {
+        const tagRE = delimiters ? buildRegex() : defaultTagRE;
+        if (!tagRE.test(text)) {
+            return
+        }
+        const tokens = [];
+        const rawTokens = [];
+        let lastIndex = tagRE.lastIndex = 0;
+        let match, index, tokenValue;
+        while ((match = tagRE.exec(text))) {
+            index = match.index;
+            console.log('gsdindex', index, lastIndex);
+            if (index > lastIndex) {
+                rawTokens.push(tokenValue = text.slice(lastIndex, index));
+                tokens.push(JSON.stringify(tokenValue));
+            }
+            const exp = parseFilters(match[1].trim());
+            tokens.push(`_s(${exp})`);
+            rawTokens.push({ '@binding': exp });
+            lastIndex = index + match[0].length;
+        }
+        if (lastIndex < text.length) {
+            rawTokens.push(tokenValue = text.slice(lastIndex));
+            tokens.push(JSON.stringify(tokenValue));
+        }
+        console.log('gsdtokens', tokens);
+        console.log('gsdrawTokens', rawTokens);
+        // "_s(aaa)+_s(aaab)"
+        // [{@binding: "aaa"}]
+        return {
+            expression: tokens.join('+'),
+            tokens: rawTokens
+        }
+    }
+
     function baseWarn (msg, range) {
         console.error(`[Vue compiler]: ${msg}`);
     }
@@ -2137,42 +2175,23 @@
         el.plain = false;
     }
 
-    const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g;
-    const buildRegex = function () { // TODO
-    };
-    function parseText (text, delimiters) {
-        const tagRE = delimiters ? buildRegex() : defaultTagRE;
-        if (!tagRE.test(text)) {
-            return
+    function addHandler ( el,name,value,modifiers,important,warn,range,dynamic) {
+        modifiers = modifiers || emptyObject;
+        if (
+             warn &&
+            modifiers.prevent && modifiers.passive
+        ) ;
+        // TODO
+        let events;
+        if (modifiers.native) ; else {
+            events = el.events || (el.events = {});
         }
-        const tokens = [];
-        const rawTokens = [];
-        let lastIndex = tagRE.lastIndex = 0;
-        let match, index, tokenValue;
-        while ((match = tagRE.exec(text))) {
-            index = match.index;
-            console.log('gsdindex', index, lastIndex);
-            if (index > lastIndex) {
-                rawTokens.push(tokenValue = text.slice(lastIndex, index));
-                tokens.push(JSON.stringify(tokenValue));
-            }
-            const exp = parseFilters(match[1].trim());
-            tokens.push(`_s(${exp})`);
-            rawTokens.push({ '@binding': exp });
-            lastIndex = index + match[0].length;
+        const newHandler = rangeSetItem({ value: value.trim(), dynamic }, range);
+        const handlers = events[name];
+        if (Array.isArray(handlers)) ; else if (handlers) ; else {
+            events[name] = newHandler;
         }
-        if (lastIndex < text.length) {
-            rawTokens.push(tokenValue = text.slice(lastIndex));
-            tokens.push(JSON.stringify(tokenValue));
-        }
-        console.log('gsdtokens', tokens);
-        console.log('gsdrawTokens', rawTokens);
-        // "_s(aaa)+_s(aaab)"
-        // [{@binding: "aaa"}]
-        return {
-            expression: tokens.join('+'),
-            tokens: rawTokens
-        }
+        el.plain = false;
     }
 
     //import he from 'he'
@@ -2181,6 +2200,7 @@
     const bindRE = /^:|^\.|^v-bind:/; // bind的常见写法 :aaa .aaa v-bind:aaa   :class='aaa'
     const onRE = /^@|^v-on:/; // 绑定事件的常见写法  @click v-on:click
     const argRE = /:(.*)$/;
+    const dynamicArgRE = /^\[.*\]$/; // [aaa]
 
     const invalidAttributeRE = /[\s"'<>\/=]/;
     const lineBreakRE = /[\r\n]/; // 回车换行
@@ -2657,7 +2677,11 @@
             if (dirRE.test(name)) {// 对指令的处理
                 // TODO
                 el.hasBindings = true; // 只要attrsList里面的name是指令 则将hasBindings变为true
-                if (bindRE.test(name)) ; else if (onRE.test(name)) ; else { // normal directives
+                if (bindRE.test(name)) ; else if (onRE.test(name)) { // v-on
+                    name = name.replace(onRE, '');
+                    isDynamic = dynamicArgRE.test(name);
+                    addHandler(el, name, value, modifiers, false, warn$1, list[i], isDynamic);
+                } else { // normal directives
                     name = name.replace(dirRE, ''); // v-show -> show
                     const argMatch = name.match(argRE); // 匹配:XXX
                     let arg = argMatch && argMatch[1];
@@ -2708,6 +2732,29 @@
     var baseDirectives = {
 
     };
+
+    function genHandlers (events,isNative) {
+        const prefix = isNative ? 'nativeOn:' : 'on:';
+        let staticHandlers = ``;
+        for (const name in events) {
+            const handlerCode = genHandler(events[name]);
+            if (events[name] && events[name].dynamic) ; else {
+                staticHandlers += `"${name}":${handlerCode},`;
+            }
+        }
+        staticHandlers = `{${staticHandlers.slice(0, -1)}}`;
+        {
+            return prefix + staticHandlers
+        }
+    }
+    function genHandler (handler) {
+        if (!handler) {
+            return 'function(){}'
+        }
+        if (!handler.modifiers) {
+            return handler.value // TODO
+        }
+    }
 
     class CodegenState {
         constructor (options) {
@@ -2801,6 +2848,9 @@
         }
         if (el.props) {
             data += `domProps:${genProps(el.props)},`;
+        }
+        if (el.events) {
+            data += `${genHandlers(el.events, false)},`;
         }
         data = data.replace(/,$/, '') + '}';
         console.log('gsddata', data);

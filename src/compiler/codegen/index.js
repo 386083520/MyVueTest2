@@ -2,6 +2,7 @@ import { pluckModuleFunction } from "../helpers";
 import {baseWarn} from "../helpers";
 import baseDirectives from '../directives/index'
 import { extend, no } from "../../shared/util";
+import { genHandlers } from "./events";
 
 export class CodegenState {
     constructor (options) {
@@ -102,6 +103,9 @@ export function genData (el, state) {
     }
     if (el.props) {
         data += `domProps:${genProps(el.props)},`
+    }
+    if (el.events) {
+        data += `${genHandlers(el.events, false)},`
     }
     data = data.replace(/,$/, '') + '}'
     console.log('gsddata', data)

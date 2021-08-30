@@ -6,22 +6,26 @@
     <script src="../dist/vue.js"></script>
 </head>
 <body>
-
-    <div class="container" id="app">
-        <input v-model="gsd"/>
-    </div>
-    <script>
-        let vm = new Vue({
-            el: '#app',
-            components: {
-                'aaa': {
-                    template: '<div>abc</div>'
-                }
-            },
-            data: {
-                'gsd': '666'
+<div class="container" id="app">
+    <input @input="gsdInput"/>
+</div>
+<script>
+    let vm = new Vue({
+        el: '#app',
+        components: {
+            'aaa': {
+                template: '<div>abc</div>'
             }
-        })
-    </script>
+        },
+        methods: {
+            gsdInput() {
+                console.log('gsdinput')
+            }
+        },
+        data: {
+            'gsd': '666'
+        }
+    })
+</script>
 </body>
 </html>

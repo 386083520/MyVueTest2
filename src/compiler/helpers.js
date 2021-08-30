@@ -1,4 +1,5 @@
 import { parseFilters } from "./parser/filter-parser";
+import {emptyObject} from "../shared/util";
 
 export function baseWarn (msg, range) {
     console.error(`[Vue compiler]: ${msg}`)
@@ -78,6 +79,31 @@ export function addDirective (el, name, rawName, value, arg, isDynamicArg, modif
 
 export function addProp (el, name, value, range, dynamic) {
     (el.props || (el.props = [])).push(rangeSetItem({ name, value, dynamic }, range))
+    el.plain = false
+}
+
+export function addHandler ( el,name,value,modifiers,important,warn,range,dynamic) {
+    modifiers = modifiers || emptyObject
+    if (
+        true && warn &&
+        modifiers.prevent && modifiers.passive
+    ) {
+        // TODO
+    }
+    // TODO
+    let events
+    if (modifiers.native) {
+
+    } else {
+        events = el.events || (el.events = {})
+    }
+    const newHandler = rangeSetItem({ value: value.trim(), dynamic }, range)
+    const handlers = events[name]
+    if (Array.isArray(handlers)) { // TODO
+    } else if (handlers) {
+    } else {
+        events[name] = newHandler
+    }
     el.plain = false
 }
 

@@ -1,15 +1,16 @@
 //import he from 'he'
 import { parseHTML } from "./html-parser";
-import { pluckModuleFunction, baseWarn, addDirective } from "../helpers";
 import { parseText } from "./text-parser";
 import {no, cached} from "../../shared/util";
 import { isIE, isEdge, isServerRendering } from "../../core/util/index";
-import { getAndRemoveAttr, getBindingAttr, addAttr, getRawBindingAttr } from "../helpers";
+import { parseFilters } from "./filter-parser";
+import { getAndRemoveAttr, getBindingAttr, addAttr, getRawBindingAttr, pluckModuleFunction, baseWarn, addDirective, addHandler } from "../helpers";
 
 export const dirRE = /^v-|^@|^:|^\.|^#/ //一些常用指令 // TODO
 export const bindRE = /^:|^\.|^v-bind:/ // bind的常见写法 :aaa .aaa v-bind:aaa   :class='aaa'
 export const onRE = /^@|^v-on:/ // 绑定事件的常见写法  @click v-on:click
 const argRE = /:(.*)$/
+const dynamicArgRE = /^\[.*\]$/ // [aaa]
 
 const invalidAttributeRE = /[\s"'<>\/=]/
 const lineBreakRE = /[\r\n]/ // 回车换行
@@ -517,7 +518,12 @@ function processAttrs(el) {
             if (bindRE.test(name)) { // v-bind
 
             } else if (onRE.test(name)) { // v-on
-
+                name = name.replace(onRE, '')
+                isDynamic = dynamicArgRE.test(name)
+                if (isDynamic) {
+                    // TODO
+                }
+                addHandler(el, name, value, modifiers, false, warn, list[i], isDynamic)
             } else { // normal directives
                 name = name.replace(dirRE, '') // v-show -> show
                 const argMatch = name.match(argRE) // 匹配:XXX
